@@ -1,2 +1,4 @@
 # MPITestImages.jl
-Test images for evaluating MPI simulation frameworks.
+
+Package with various test images for working with MPI simulation frameworks.
+
