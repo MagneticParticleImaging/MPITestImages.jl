@@ -1,0 +1,6 @@
+[testimages]
+git-tree-sha1 = "d95019403f8dff6eabfe4fb4dafd222f81984503"
+
+    [[testimages.download]]
+    url = "https://github.com/MagneticParticleImaging/MPITestImages.jl/releases/download/v0.1.0/testimages.tar.gz"
+    sha256 = "247ee1c0aaf0683494c1d02be5856ecfbca94d436fe9404c2109a7a0350c58f0"
