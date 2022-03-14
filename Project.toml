@@ -1,7 +1,7 @@
 name = "MPITestImages"
 uuid = "67a05f95-e8e3-406b-b1ec-9f1919b23209"
 authors = ["Various contributors"]
-version = "0.1.1"
+version = "0.1.2"
 
 [deps]
 Compat = "34da2185-b29b-5c13-b0c7-acf172513d20"
