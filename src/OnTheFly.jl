@@ -1,6 +1,7 @@
 
 
 @testimage_gen function three_dot_corner(size::Tuple{Integer, Integer}=(81,81))
+	#TODO: Make more flexible 
 	image = zeros(Float64, size)
 	image[39:41, 39:41] .= 1
 	image[39:41, 54:56] .= 1
@@ -51,22 +52,22 @@ end
 	dist = round(Int64, (size[1]/2-(numBars-1)*thickness)/(numBars-0)/2)
 
 	for i in 1:numBars
-		image[dist:dist+length, (2*i-1)*dist:(2*i-1)*dist+thickness] .= 1
+		@inbounds image[dist:dist+length, (2*i-1)*dist:(2*i-1)*dist+thickness] .= 1
 	end
 
 	for i in 1:numBars
-		image[end-dist-length:end-dist, end-(2*i-1)*dist-thickness:end-(2*i-1)*dist] .= 1
+		@inbounds image[end-dist-length:end-dist, end-(2*i-1)*dist-thickness:end-(2*i-1)*dist] .= 1
 	end
 
 	length = round(Int64, size[2]/2.2)
 	dist = round(Int64, (size[2]/2-(numBars-1)*thickness)/(numBars-0)/2)
 
 	for i in 1:numBars
-		image[end-(2*i-1)*dist-thickness:end-(2*i-1)*dist, dist:dist+length] .= 1
+		@inbounds image[end-(2*i-1)*dist-thickness:end-(2*i-1)*dist, dist:dist+length] .= 1
 	end
 
 	for i in 1:numBars
-		image[(2*i-1)*dist:(2*i-1)*dist+thickness, end-dist-length:end-dist] .= 1
+		@inbounds image[(2*i-1)*dist:(2*i-1)*dist+thickness, end-dist-length:end-dist] .= 1
 	end
 	
 	return image
