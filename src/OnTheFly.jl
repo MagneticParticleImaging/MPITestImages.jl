@@ -43,3 +43,31 @@ end
 	
 	return image
 end
+
+@testimage_gen function four_quadrant_bar(size::Tuple{Integer, Integer}=(81,81); numBars::Real=4, thickness::Real=2)
+	image = zeros(Float32, size)
+
+	length = round(Int64, size[1]/2.2)
+	dist = round(Int64, (size[1]/2-(numBars-1)*thickness)/(numBars-0)/2)
+
+	for i in 1:numBars
+		image[dist:dist+length, (2*i-1)*dist:(2*i-1)*dist+thickness] .= 1
+	end
+
+	for i in 1:numBars
+		image[end-dist-length:end-dist, end-(2*i-1)*dist-thickness:end-(2*i-1)*dist] .= 1
+	end
+
+	length = round(Int64, size[2]/2.2)
+	dist = round(Int64, (size[2]/2-(numBars-1)*thickness)/(numBars-0)/2)
+
+	for i in 1:numBars
+		image[end-(2*i-1)*dist-thickness:end-(2*i-1)*dist, dist:dist+length] .= 1
+	end
+
+	for i in 1:numBars
+		image[(2*i-1)*dist:(2*i-1)*dist+thickness, end-dist-length:end-dist] .= 1
+	end
+	
+	return image
+end
