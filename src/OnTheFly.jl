@@ -7,3 +7,24 @@
 	image[57:59, 39:41] .= 1
 	return image
 end
+
+"""
+https://en.wikipedia.org/wiki/Siemens_star
+"""
+@testimage_gen function siemens_star(size::Tuple{Integer, Integer}=(81,81); numSpokes::Integer=8)
+	radius = minimum(size)/2
+	Drawing(size..., :image)
+	origin()
+	background("black")
+	sethue("white")
+
+	spokeAngle = π/numSpokes
+	for spokeIdx in 1:numSpokes
+		Luxor.pie(radius, (2*spokeIdx-1)*spokeAngle, (2*spokeIdx)*spokeAngle, :fill)
+	end
+
+	image = Float32.(Gray.(image_as_matrix()))
+  finish()
+	
+	return image
+end

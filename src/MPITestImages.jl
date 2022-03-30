@@ -2,6 +2,8 @@ module MPITestImages
 
 using Pkg.Artifacts
 using FileIO
+using Luxor
+using Images
 
 const remotefiles = [
 	"Phantom1",
@@ -34,7 +36,8 @@ function addOnTheFlyImage(fun::Symbol)
 			@warn "The on-the-fly image `$(string(fun))` is already linked with a remote file."
 		end
 	else
-		error("The on-the-fly image `$(string(fun))` has already been added.")
+		@warn "The on-the-fly image `$(string(fun))` has already been added."
+		#error("The on-the-fly image `$(string(fun))` has already been added.")
 	end
 end
 
@@ -43,7 +46,7 @@ export testimage_gen
 Macro for annotating functions that can be used to generate test images.
 """
 macro testimage_gen(expr::Expr)
-	addOnTheFlyImage(expr.args[1].args[1]) # Note: use dump to debug expr
+	addOnTheFlyImage(expr.args[1].args[1]) # Note: use dump to debug expr; TODO: Use MacroTools
 	return expr
 end
 
