@@ -17,3 +17,6 @@ makedocs(;
         "Home" => "index.md",
     ],
 )
+
+deploydocs(repo   = "github.com/MagneticParticleImaging/MPITestImages.jl.git",
+           target = "build")
