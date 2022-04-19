@@ -1,6 +1,6 @@
 name = "MPITestImages"
 uuid = "67a05f95-e8e3-406b-b1ec-9f1919b23209"
-authors = ["Various contributors"]
+authors = ["Jonas Schumacher <jonas.schumacher@imte.fraunhofer.de> and contributors"]
 version = "0.1.3"
 
 [deps]
