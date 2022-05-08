@@ -2,6 +2,7 @@ module MPITestImages
 
 using Pkg.Artifacts
 using FileIO
+using Images
 
 const remotefiles = [
 	"Phantom1",
