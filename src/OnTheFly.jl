@@ -63,3 +63,47 @@ julia> image = delta_image((8, 8), 2;
 	return image
 end
 
+"""
+Function to generate a phantom with a checker board pattern. This Function uses a best effort approach, meaning
+that it is tried to cover most of the phantom with the pattern using the specified parameters.
+
+# Arguments
+- `size::Tuple{Integer, Integer}`: The size of the phantom
+- `checkersCount::Tuple{Integer, Integer}`: How many squares to generate along each axis
+- `stripeWidth::Tuple{Integer, Integer}`: By default `(1, 1)`. Sets the width of the lines between the squares
+
+# Examples
+```jldoctest
+julia> image = checker_image((8, 8), (2, 3), (2, 1))
+8×8 Matrix{Float64}:
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  1.0  0.0  1.0  0.0  1.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  1.0  0.0  1.0  0.0  1.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+```
+"""
+@testimage_gen function checker_image(size::Tuple{Integer, Integer}=(8, 8), checkersCount::Tuple{Integer, Integer}=(2,2), stripeWidth::Tuple{Integer, Integer}=(1, 1))	
+	image = zeros(Float64, size)
+
+	# Calculate the space of each square
+	xSpace = convert(Integer, floor((size[1] - (checkersCount[1]+1)*stripeWidth[1]) / checkersCount[1]))
+	ySpace = convert(Integer, floor((size[2] - (checkersCount[2]+1)*stripeWidth[2]) / checkersCount[2]))
+
+	# Calculate the rest of the division that will be added to the border of the checker board
+	xBorder = convert(Integer, round((size[1] - (checkersCount[1]+1)*stripeWidth[1] - xSpace * checkersCount[1]) / 2))
+	yBorder = convert(Integer, round((size[2] - (checkersCount[2]+1)*stripeWidth[2] - ySpace * checkersCount[2]) / 2))
+
+	# Generate the stripes
+	for x in 0:checkersCount[1]-1
+		for y in 0:checkersCount[2]-1
+			image[xBorder+stripeWidth[1]+1+x*(xSpace+stripeWidth[1]):xBorder+x*(xSpace+stripeWidth[1])+xSpace+stripeWidth[1],
+				  yBorder+stripeWidth[2]+1+y*(ySpace+stripeWidth[2]):yBorder+y*(ySpace+stripeWidth[2])+ySpace+stripeWidth[2]] .= 1
+		end
+	end
+
+	return image
+end
