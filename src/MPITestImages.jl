@@ -55,10 +55,28 @@ function testimage(name::String, args...; kwargs...)
 		return f(args...; kwargs...)
 	elseif name in remotefiles
 		rootpath = artifact"testimages"
+
+		try
+			return changeScale(name, rootpath, args...)
+		catch err
+			if isa(err, MethodError)
+				@warn "No scale provided. Using default image size."
+			end
+		end
+		
 		return load(joinpath(rootpath, "phantoms", name*".png"))
 	else
 		error("The given name `$name` did not match a known test image.")
 	end
+end
+
+"""
+Loads the specified image from remote source and scales it accordingly.
+"""
+function changeScale(name::String, rootpath::String, size::Tuple{Integer, Integer}, args...)
+	image = load(joinpath(rootpath, "phantoms", name*".png"))
+
+	return imresize(image, size)
 end
 
 export TestImage
