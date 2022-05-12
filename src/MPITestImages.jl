@@ -50,6 +50,26 @@ macro testimage_gen(expr::Expr)
 end
 
 export testimage
+"""
+		$(SIGNATURES)
+
+Create a test image with the given `name`.
+
+Note: The name must correspond either 
+# Examples
+```jldoctest
+julia> image = testimage("delta_image", (8, 8), 2; sizeOfPoint=(3, 2), distanceOfPoints=(x -> 0, x -> 4), pivot=(3, 3))
+8×8 Matrix{Float64}:
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  1.0  1.0  0.0  0.0  1.0  1.0
+ 0.0  0.0  1.0  1.0  0.0  0.0  1.0  1.0
+ 0.0  0.0  1.0  1.0  0.0  0.0  1.0  1.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+```
+"""
 function testimage(name::String, args...; kwargs...)
 	if Symbol(name) in onTheFlyImages # Prioritize on-the-fly images over file-based ones
 		f = getfield(@__MODULE__, Symbol(name))
