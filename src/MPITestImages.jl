@@ -1,5 +1,6 @@
 module MPITestImages
 
+using DocStringExtensions
 using Pkg.Artifacts
 using FileIO
 using Images

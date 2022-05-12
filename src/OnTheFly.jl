@@ -1,9 +1,11 @@
 
-
+export delta_image
 """
+		$(SIGNATURES)
+
 Function to generate a phantom with discrete points. The `distanceOfPoints` argument takes two functions
 that take the number of the point to generate and return an integer. This makes the phantoms to generate highly 
-costumizable.
+customizable.
 
 # Arguments
 - `size::Tuple{Integer, Integer}`: The size of the phantom
@@ -14,29 +16,24 @@ costumizable.
 - `wrapPoint::Bool`: If true, points are generated in the next line or column if the border is reached
 # Examples
 ```jldoctest
-julia> image = delta_image((8, 8), 2; 
-			sizeOfPoint=(3, 2), 
-			distanceOfPoints=(function (x) return 0 end, function (x) return 4 end), 
-			pivot=(3, 3))
-```
-```jldoctest
+julia> image = delta_image((8, 8), 2; sizeOfPoint=(3, 2), distanceOfPoints=(x -> 0, x -> 4), pivot=(3, 3))
 8×8 Matrix{Float64}:
-	0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
-	0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
-	0.0  0.0  1.0  1.0  0.0  0.0  1.0  1.0
-	0.0  0.0  1.0  1.0  0.0  0.0  1.0  1.0
-	0.0  0.0  1.0  1.0  0.0  0.0  1.0  1.0
-	0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
-	0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
-	0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  1.0  1.0  0.0  0.0  1.0  1.0
+ 0.0  0.0  1.0  1.0  0.0  0.0  1.0  1.0
+ 0.0  0.0  1.0  1.0  0.0  0.0  1.0  1.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
 ```
 """
 @testimage_gen function delta_image(
-	size::Tuple{Integer, Integer}, 
-	numOfPoints::Integer; 
-	sizeOfPoint::Tuple{Integer, Integer}=(1, 1),
-	distanceOfPoints::Tuple{Function, Function}=(function (x) return x end, function (x) return x end),	
-	pivot::Tuple{Integer, Integer}=(1, 1)
+		size::Tuple{Integer, Integer}, 
+		numOfPoints::Integer; 
+		sizeOfPoint::Tuple{Integer, Integer}=(1, 1),
+		distanceOfPoints::Tuple{Function, Function}=(x -> 1, x -> 1),	
+		pivot::Tuple{Integer, Integer}=(1, 1)
 	)
 
 	image = zeros(Float64, size)
@@ -50,11 +47,12 @@ julia> image = delta_image((8, 8), 2;
 
 		image[xPos:(xPos+sizeOfPoint[1] - 1), yPos:(yPos+sizeOfPoint[2] - 1)] .= 1
 
+		# TODO: The following variables are not used.
 		try
 			xPos += distanceOfPoints[1](i+1)
 			yPos += distanceOfPoints[2](i+1)
 		catch
-			println("The Function to calculate the distances is not valid")
+			println("The function to calculate the distances is not valid.")
 			return image
 		end
  		
@@ -63,8 +61,11 @@ julia> image = delta_image((8, 8), 2;
 	return image
 end
 
+export checker_image
 """
-Function to generate a phantom with a checker board pattern. This Function uses a best effort approach, meaning
+		$(SIGNATURES)
+
+Function to generate a phantom with a checker board pattern. This function uses a best effort approach, meaning
 that it is tried to cover most of the phantom with the pattern using the specified parameters.
 
 # Arguments
@@ -86,7 +87,7 @@ julia> image = checker_image((8, 8), (2, 3), (2, 1))
  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
 ```
 """
-@testimage_gen function checker_image(size::Tuple{Integer, Integer}=(8, 8), checkersCount::Tuple{Integer, Integer}=(2,2), stripeWidth::Tuple{Integer, Integer}=(1, 1))	
+@testimage_gen function checker_image(size::Tuple{Integer, Integer}=(8, 8), checkersCount::Tuple{Integer, Integer}=(2, 2), stripeWidth::Tuple{Integer, Integer}=(1, 1))	
 	image = zeros(Float64, size)
 
 	# Calculate the space of each square
