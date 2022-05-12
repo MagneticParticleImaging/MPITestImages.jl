@@ -46,8 +46,7 @@ julia> image = delta_image((8, 8), 2; sizeOfPoint=(3, 2), distanceOfPoints=(x ->
 		end
 
 		image[xPos:(xPos+sizeOfPoint[1] - 1), yPos:(yPos+sizeOfPoint[2] - 1)] .= 1
-
-		# TODO: The following variables are not used.
+		
 		try
 			xPos += distanceOfPoints[1](i+1)
 			yPos += distanceOfPoints[2](i+1)
