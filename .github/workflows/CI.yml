@@ -54,8 +54,9 @@ jobs:
             Pkg.instantiate()'
       - run: |
           julia --project=docs -e '
-            using Documenter: doctest
+            using Documenter
             using MPITestImages
+            DocMeta.setdocmeta!(MPITestImages, :DocTestSetup, :(using MPITestImages); recursive=true)
             doctest(MPITestImages, manual=false)'
       - run: julia --project=docs docs/make.jl
         env:
