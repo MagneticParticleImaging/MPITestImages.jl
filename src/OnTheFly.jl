@@ -13,7 +13,7 @@ customizable.
 - `sizeOfPoint::Tuple{Integer, Integer}`: The size of the points in the phantom
 - `distanceOfPoints::Tuple{Function, Function}`: The distance to add between each points in x and y direction
 - `pivot::Tuple{Integer, Integer}`: The starting point to generate points towards (size, size)
-- `wrapPoint::Bool`: If true, points are generated in the next line or column if the border is reached
+- `circularShape::Bool`: If true, points are generated as circular
 # Examples
 ```jldoctest
 julia> image = delta_image((8, 8), 2; sizeOfPoint=(3, 2), distanceOfPoints=(x -> 0, x -> 4), pivot=(3, 3))
@@ -33,20 +33,39 @@ julia> image = delta_image((8, 8), 2; sizeOfPoint=(3, 2), distanceOfPoints=(x ->
 		numOfPoints::Integer; 
 		sizeOfPoint::Tuple{Integer, Integer}=(1, 1),
 		distanceOfPoints::Tuple{Function, Function}=(x -> 1, x -> 1),	
-		pivot::Tuple{Integer, Integer}=(1, 1)
+		pivot::Tuple{Integer, Integer}=(1, 1),
+		circularShape::Bool=false
 	)
 
 	image = zeros(Float64, size)
 
 	(xPos, yPos) = pivot
 
+	# Calculate the pixels that will get filled
+	shape = []
+	if !circularShape || (sizeOfPoint[1] <= 2 && sizeOfPoint[2] <= 2)
+		shape = ones(sizeOfPoint)
+	else
+		shape = zeros(sizeOfPoint)
+		halfX = (sizeOfPoint[1] + 1) / 2
+		halfY = (sizeOfPoint[2] + 1) / 2
+
+		for x in 1:sizeOfPoint[1] 
+			for y in 1:sizeOfPoint[2] 
+				if ((x - halfX)^2/(halfX - 1.0)^2) + ((y - halfY)^2/(halfY - 1.0)^2) <= 1.25
+					shape[x, y] = 1 
+				end
+			end
+		end
+	end
+
 	for i in 1:numOfPoints
 		if yPos + sizeOfPoint[2] > size[2] + 1 || xPos + sizeOfPoint[1] > size[1] + 1
 			break
 		end
-
-		image[xPos:(xPos+sizeOfPoint[1] - 1), yPos:(yPos+sizeOfPoint[2] - 1)] .= 1
 		
+		image[xPos:(xPos+sizeOfPoint[1] - 1), yPos:(yPos+sizeOfPoint[2] - 1)] = shape
+
 		try
 			xPos += distanceOfPoints[1](i+1)
 			yPos += distanceOfPoints[2](i+1)
