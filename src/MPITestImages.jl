@@ -1,7 +1,9 @@
 module MPITestImages
 
+using DocStringExtensions
 using Pkg.Artifacts
 using FileIO
+using Images
 
 const remotefiles = [
 	"Phantom1",
@@ -48,16 +50,57 @@ macro testimage_gen(expr::Expr)
 end
 
 export testimage
+"""
+		$(SIGNATURES)
+
+Retrieve a test image with the given `name` and the matching parameters.
+
+Note: The name must correspond either to a remote file or a function 
+			name annotated by the `testimage_gen` macro. If both exist, precedence
+			is given to the function.
+
+# Examples
+```jldoctest
+julia> image = testimage("delta_image", (8, 8), 2; sizeOfPoint=(3, 2), distanceOfPoints=(x -> 0, x -> 4), pivot=(3, 3))
+8×8 Matrix{Float64}:
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  1.0  1.0  0.0  0.0  1.0  1.0
+ 0.0  0.0  1.0  1.0  0.0  0.0  1.0  1.0
+ 0.0  0.0  1.0  1.0  0.0  0.0  1.0  1.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+```
+"""
 function testimage(name::String, args...; kwargs...)
 	if Symbol(name) in onTheFlyImages # Prioritize on-the-fly images over file-based ones
 		f = getfield(@__MODULE__, Symbol(name))
 		return f(args...; kwargs...)
 	elseif name in remotefiles
 		rootpath = artifact"testimages"
+
+		try
+			return changeScale(name, rootpath, args...)
+		catch err
+			if isa(err, MethodError)
+				@warn "No scale provided. Using default image size."
+			end
+		end
+		
 		return load(joinpath(rootpath, "phantoms", name*".png"))
 	else
 		error("The given name `$name` did not match a known test image.")
 	end
+end
+
+"""
+Loads the specified image from remote source and scales it accordingly.
+"""
+function changeScale(name::String, rootpath::String, size::Tuple{Integer, Integer}, args...)
+	image = load(joinpath(rootpath, "phantoms", name*".png"))
+
+	return imresize(image, size)
 end
 
 export TestImage
