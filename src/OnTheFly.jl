@@ -15,6 +15,8 @@ customizable.
 - `pivot::Tuple{Integer, Integer}`: The starting point to generate points towards (size, size)
 - `circularShape::Bool`: If true, points are generated as circular
 # Examples
+
+## Two simple dots
 ```jldoctest
 julia> image = delta_image((8, 8), 2; sizeOfPoint=(3, 2), distanceOfPoints=(x -> 0, x -> 4), pivot=(3, 3))
 8×8 Matrix{Float64}:
@@ -25,6 +27,20 @@ julia> image = delta_image((8, 8), 2; sizeOfPoint=(3, 2), distanceOfPoints=(x ->
  0.0  0.0  1.0  1.0  0.0  0.0  1.0  1.0
  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+```
+
+## L-shaped arrangement
+```jldoctest
+julia> image = delta_image((8, 8), 3; sizeOfPoint=(2, 2), distanceOfPoints=(x -> x == 2 ? 3 : 0, x -> x == 3 ? -3 : 3), pivot=(3, 3))
+8×8 Matrix{Float64}:
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  1.0  1.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  1.0  1.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  1.0  1.0  0.0  1.0  1.0  0.0
+ 0.0  0.0  1.0  1.0  0.0  1.0  1.0  0.0
  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
 ```
 """
