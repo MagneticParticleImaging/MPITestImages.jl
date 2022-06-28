@@ -1,3 +1,4 @@
+using ImageTransformations
 
 export delta_image
 """
@@ -141,4 +142,120 @@ julia> image = checker_image((8, 8), (2, 3), (2, 1))
 	end
 
 	return image
+end
+
+export derenzo_image
+"""
+		$(SIGNATURES)
+
+Function to generate Derenzo Phantom. This is done by specifying the radius of the phantom and the size in pixel for
+each sextant of the phantom. The algorithm tries to fill the radius with as many dots as possible.
+
+# Arguments
+- `size::Tuple{Integer, Integer}`: Size of the phantom.
+- `radius::Integer`: Radius of the circle generated.
+- `pointSizePerSextant::Vector{Integer}`: Size for the points in each sextant. Should atleast be of length 6.
+
+# Returns
+- `image::Matrix{Float64}`: The resulting derenzo phantom.
+"""
+@testimage_gen function derenzo_image(imageSize::Tuple{Int64, Int64}, radius::Int64, pointSizePerSextant::Vector{Int64})
+	# Check validity of params
+	length(pointSizePerSextant) >= 6 || throw(ArgumentError("Invalid length of vector $pointSizePerSextant. Should atleast be 6!"))
+	# if the points are too small, it would result in interpolation errors.
+	minimum(pointSizePerSextant) >= 4 || throw(ArgumentError("Invalid size in $pointSizePerSextant. Should be atleast 4 pixels."))
+
+	# Add maximum pointSize to accomodate points sitting on border
+	width = Int(floor(2*tan(π/6)*radius) + maximum(pointSizePerSextant))
+	l = Int(round(sqrt(radius^2 + width^2/4)))
+	minimum(imageSize) > 2 * l || throw(ArgumentError("Invalid radius r: $radius for specified size: $size."))
+
+	image = zeros(Int64, imageSize)
+	(midX, midY) = Int.(round.((imageSize[1] / 2, imageSize[2] / 2)))
+
+	# Compute Section size
+	sectionSize = (radius, width)
+
+	# compute for each sextant
+	for numSextant in 1:6
+		pointSize = pointSizePerSextant[numSextant]
+
+		# Compute shape of dot in section
+		shape = zeros((pointSize, pointSize))
+		halfSize = (pointSize + 1) / 2		
+
+		for x in 1:pointSize
+			for y in 1:pointSize
+				if ((x - halfSize)^2/(halfSize - 1.0)^2) + ((y - halfSize)^2/(halfSize - 1.0)^2) <= 1.0
+					shape[x, y] = 1
+				end
+			end		
+		end
+
+		# middle of section
+		shapesFit = width >= pointSize && radius >= pointSize
+		numOfPoints = 1
+		section = Int.(zeros(sectionSize))
+		lastTopBottom = 1
+		dist = 1
+		while shapesFit	
+			# compute distance (only once when two points are to be placed)
+			if numOfPoints == 2
+				while true
+					widthAtRow = Int.(floor(2*tan(π/6)*(lastTopBottom+(dist-1)+halfSize)))
+					spaceBetweenPoints = widthAtRow - 2*pointSize
+				
+					if dist == spaceBetweenPoints || dist >= radius
+						break
+					else
+						dist += 1
+					end
+				end
+
+				# Add point size, so points sit on border of cone
+				dist += pointSize	
+				lastTopBottom += (dist-1)
+
+				if !(width >= numOfPoints * pointSize + dist * (numOfPoints-1) && radius >= pointSize + lastTopBottom)
+					break
+				end				
+			end
+
+			# fit numOfPoints shapes to matrix
+			numZeros = width - pointSize*numOfPoints - dist*(numOfPoints-1)
+			shapes = zeros(pointSize, Int(floor(numZeros/2)))
+			shapes = hcat(shapes, shape)
+			for num in 1:numOfPoints
+				if numOfPoints == num
+					shapes = hcat(shapes, zeros(pointSize, Int(ceil(numZeros/2))))
+					break
+				end
+
+				distMatrix = zeros(pointSize, dist)
+				shapes = hcat(shapes, distMatrix)
+				shapes = hcat(shapes, shape)
+			end
+
+			section[lastTopBottom:lastTopBottom+pointSize-1, 1:end] = shapes
+			lastTopBottom += pointSize + (dist - 50)
+
+			# each row one more point
+			numOfPoints += 1
+		
+			shapesFit = width >= numOfPoints * pointSize + dist * (numOfPoints-1) && radius >= pointSize + lastTopBottom
+		end		
+
+		# Putting sections together		
+		spaceBetween = radius - lastTopBottom + dist
+		offsetX = Int(round(spaceBetween / 2) + round(radius / 10))					
+		rotatedImage = round.(imrotate(image, π/3), digits=4) 
+		replace!(rotatedImage, NaN => 0.0)
+
+		rotatedImage[midX+offsetX:midX+offsetX+radius-1, midY-Int(ceil(width/2)):midY+Int(floor(width/2))-1] += section
+
+		image = rotatedImage
+	end	
+
+	# Constain image to specified size
+	return image[1:imageSize[1], 1:imageSize[2]]
 end
