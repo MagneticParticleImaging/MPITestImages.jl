@@ -111,7 +111,7 @@ struct TestImage
 	name::String
 	data::AbstractArray
 	args::Tuple
-	kwargs::Base.Pairs
+	kwargs::Any
 
 	function TestImage(name::String, args...; kwargs...)
 		data = testimage(name, args...; kwargs...)
