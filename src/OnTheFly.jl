@@ -1,10 +1,11 @@
+using ImageTransformations
 
 export delta_image
 """
-		$(SIGNATURES)
+    $(SIGNATURES)
 
 Function to generate a phantom with discrete points. The `distanceOfPoints` argument takes two functions
-that take the number of the point to generate and return an integer. This makes the phantoms to generate highly 
+that take the number of the point to generate and return an integer. This makes the phantoms to generate highly
 customizable.
 
 # Arguments
@@ -45,10 +46,10 @@ julia> image = delta_image((8, 8), 3; sizeOfPoint=(2, 2), distanceOfPoints=(x ->
 ```
 """
 @testimage_gen function delta_image(
-		size::Tuple{Integer, Integer}, 
-		numOfPoints::Integer; 
+		size::Tuple{Integer, Integer},
+		numOfPoints::Integer;
 		sizeOfPoint::Tuple{Integer, Integer}=(1, 1),
-		distanceOfPoints::Tuple{Function, Function}=(x -> 1, x -> 1),	
+		distanceOfPoints::Tuple{Function, Function}=(x -> 1, x -> 1),
 		pivot::Tuple{Integer, Integer}=(1, 1),
 		circularShape::Bool=false
 	)
@@ -66,10 +67,10 @@ julia> image = delta_image((8, 8), 3; sizeOfPoint=(2, 2), distanceOfPoints=(x ->
 		halfX = (sizeOfPoint[1] + 1) / 2
 		halfY = (sizeOfPoint[2] + 1) / 2
 
-		for x in 1:sizeOfPoint[1] 
-			for y in 1:sizeOfPoint[2] 
+		for x in 1:sizeOfPoint[1]
+			for y in 1:sizeOfPoint[2]
 				if ((x - halfX)^2/(halfX - 1.0)^2) + ((y - halfY)^2/(halfY - 1.0)^2) <= 1.25
-					shape[x, y] = 1 
+					shape[x, y] = 1
 				end
 			end
 		end
@@ -79,7 +80,7 @@ julia> image = delta_image((8, 8), 3; sizeOfPoint=(2, 2), distanceOfPoints=(x ->
 		if yPos + sizeOfPoint[2] > size[2] + 1 || xPos + sizeOfPoint[1] > size[1] + 1
 			break
 		end
-		
+
 		image[xPos:(xPos+sizeOfPoint[1] - 1), yPos:(yPos+sizeOfPoint[2] - 1)] = shape
 
 		try
@@ -89,7 +90,7 @@ julia> image = delta_image((8, 8), 3; sizeOfPoint=(2, 2), distanceOfPoints=(x ->
 			println("The function to calculate the distances is not valid.")
 			return image
 		end
- 		
+
 	end
 
 	return image
@@ -121,7 +122,7 @@ julia> image = checker_image((8, 8), (2, 3), (2, 1))
  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
 ```
 """
-@testimage_gen function checker_image(size::Tuple{Integer, Integer}=(8, 8), checkersCount::Tuple{Integer, Integer}=(2, 2), stripeWidth::Tuple{Integer, Integer}=(1, 1))	
+@testimage_gen function checker_image(size::Tuple{Integer, Integer}=(8, 8), checkersCount::Tuple{Integer, Integer}=(2, 2), stripeWidth::Tuple{Integer, Integer}=(1, 1))
 	image = zeros(Float64, size)
 
 	# Calculate the space of each square
@@ -141,4 +142,328 @@ julia> image = checker_image((8, 8), (2, 3), (2, 1))
 	end
 
 	return image
+end
+
+export derenzo_image
+"""
+		$(SIGNATURES)
+
+Function to generate Derenzo Phantom. This is done by specifying the diameter of the phantom and the size in pixel and 
+for each sextant of the phantom. The algorithm tries to fill the radius with as many dots as possible.
+
+# Arguments
+- `diameter::Int64`: Diameter in pixel of the phantom.
+- `pointSizePerSextant::Vector{Integer}`: Size for the points in each sextant. Should atleast be of length 6.
+- `gapBetweenSextants::Union{Int64, Vector{Int64}}`: Gap between the center of the phantom and the sextants.
+
+# Optional Arguments
+`distanceBetweenPoints::Union{Int64, Vector{Int64}}=-1`: The ctc distance of the holes. 
+`arrowShape::Bool=false`: If true the last row of each sextant will have another row of one less hole if it fits.
+
+# Returns
+- `image::Matrix{Float64}`: The resulting derenzo phantom.
+
+# Examples
+This call generates a phantom similar to QRMs Mini Derenzo Phantom:
+```
+derenzo = derenzo_image2(600, 
+	Int.(round.([0.6*500, 0.8*500, 1.0*500, 1.2*500, 1.5*500, 2.0*500]./29)), 
+	30,
+	distanceBetweenPoints=Int.(round.([1.2*500, 1.6*500, 2.0*500, 2.4*500, 3.0*500, 4.0*500]./29)),
+	arrowShape=true)
+```
+"""
+@testimage_gen function derenzo_image(diameter::Int64, pointSizePerSextant::Vector{Int64}, gapBetweenSextants::Union{Int64, Vector{Int64}}; distanceBetweenPoints::Union{Int64, Vector{Int64}}=-1, arrowShape::Bool=false)
+	# Check validity of params
+	length(pointSizePerSextant) >= 6 || throw(ArgumentError("Invalid length of vector $pointSizePerSextant. Should atleast be 6!"))
+	(gapBetweenSextants isa Vector{Int64} && length(gapBetweenSextants) < 6) && throw(ArgumentError("Invalid length of vector $gapBetweenSextants. Should atleast be 6 or a scalar!"))
+	# if the points are too small, it would result in interpolation errors.
+	minimum(pointSizePerSextant) >= 4 || throw(ArgumentError("Invalid size in $pointSizePerSextant. Should be atleast 4 pixels."))
+
+	# calculate radius and width
+	radius = round(Int, (diameter - 2*maximum(gapBetweenSextants)) / 2) + Int(ceil(maximum(pointSizePerSextant)/2))
+	width(r) = Int(floor(2*tan(π/6)*r))
+	widthSextant = width(radius) 
+
+	# Add to radius if we want arrow shape
+	if arrowShape 
+		radius += (distanceBetweenPoints == -1 ? maximum(pointSizePerSextant) : maximum(distanceBetweenPoints)) + maximum(pointSizePerSextant)
+	end
+
+	# Compute sextant size
+	sextantSize = (radius, widthSextant)
+	println(sextantSize)
+
+	# Create final image with correct dimensions
+	l = 2*Int(round(sqrt(radius^2 + widthSextant^2/4)) + maximum(pointSizePerSextant) + maximum(gapBetweenSextants))
+	image = zeros(Int64, (l, l))
+	midImage = Int(round(l / 2))
+	println("Image Size: ", l)
+
+	# Compute each sextant and add to image
+	for numSextant in 1:6
+		# Create the shape according to pointSizePerSextant
+		pointSize = pointSizePerSextant[numSextant]
+
+		shape = zeros((pointSize, pointSize))
+		halfSize = pointSize / 2		
+
+		for x in 1:pointSize
+			for y in 1:pointSize
+				if ((x - halfSize - 0.5)^2/(halfSize-0.5)^2) + ((y - halfSize - 0.5)^2/(halfSize - 0.5)^2) <= 1.0
+					shape[x, y] = 1
+				end
+			end		
+		end
+
+		# Initialize variables
+		horiDist = 0		# The horizontal distance between the holes
+		vertDist = 0		# The vertical distance between the holes
+		lastHoleTop = 1	# The height of the center of the last row of holes
+		numOfPoints = 1		# How many points to place in this row
+		sextant = zeros(Int64, sextantSize)	# The sextant to place the holes in
+		shapesFit = true	# Boolean to determine if more holes fit in sextant
+		widthReached = false # When arrow shape is desired determines when last row was added
+
+		while shapesFit
+			# Calculate the distances
+			horiDist = 2*(distanceBetweenPoints == -1 ? pointSize : (distanceBetweenPoints isa Vector{Int64} ? distanceBetweenPoints[numSextant] : distanceBetweenPoints))
+			vertDist = round(Int64, sqrt(horiDist^2 - horiDist^2/4))
+			
+			# fit numOfPoints shapes to matrix
+			numZeros = widthSextant - pointSize*numOfPoints - (horiDist - pointSize)*(numOfPoints-1)
+			shapes = zeros(pointSize, Int(floor(numZeros/2)))
+			shapes = hcat(shapes, shape)
+			for num in 1:numOfPoints
+				if numOfPoints == num
+					shapes = hcat(shapes, zeros(pointSize, Int(ceil(numZeros/2))))
+					break
+				end
+
+				distMatrix = zeros(pointSize, (horiDist - pointSize))
+				shapes = hcat(shapes, distMatrix)
+				shapes = hcat(shapes, shape)
+			end
+
+			# Fit shape in the right row of sextant
+			if radius >= pointSize + lastHoleTop
+				sextant[lastHoleTop:lastHoleTop+pointSize-1, 1:end] = shapes
+				lastHoleTop += vertDist
+			end
+
+			# each row one more point
+			numOfPoints += 1
+
+			shapesFitHorizontally = widthSextant >= numOfPoints * pointSize + (horiDist - pointSize)*(numOfPoints-1) 
+			shpesFitVertically = radius >= pointSize + lastHoleTop
+
+			if !shapesFitHorizontally && arrowShape && !widthReached
+				numOfPoints -= 2
+				shapesFit = true
+				widthReached = true
+			else
+				shapesFit = shapesFitHorizontally && shpesFitVertically && !widthReached
+			end
+		end		
+		# Putting sextants together	
+		# calculate space between last row of points and edge of sextant	
+		spaceBetween = gapBetweenSextants == -1 ? radius - lastHoleTop + (vertDist - pointSize) : (gapBetweenSextants isa Vector{Int64} ? gapBetweenSextants[numSextant] : gapBetweenSextants)
+		offsetX = Int(round(spaceBetween / 2) + spaceBetween)					
+		rotatedImage = round.(imrotate(image, π/3), digits=4) 
+		replace!(rotatedImage, NaN => 0.0)
+
+		rotatedImage[midImage+offsetX:midImage+offsetX+radius-1, midImage-Int(ceil(widthSextant/2)):midImage+Int(floor(widthSextant/2))-1] += sextant
+
+		image = rotatedImage	
+	end
+
+	# Constain image to specified size
+	return image[1:l, 1:l]
+end
+
+"""
+https://en.wikipedia.org/wiki/Siemens_star
+"""
+@testimage_gen function siemens_star(size::Tuple{Integer, Integer}=(81,81); numSpokes::Integer=8)
+	radius = minimum(size)/2
+	Drawing(size..., :image)
+	origin()
+	background("black")
+	sethue("white")
+
+	spokeAngle = π/numSpokes
+	for spokeIdx in 1:numSpokes
+		Luxor.pie(radius, (2*spokeIdx-1)*spokeAngle, (2*spokeIdx)*spokeAngle, :fill)
+	end
+
+	image = Float32.(Gray.(image_as_matrix()))
+  finish()
+
+	return image
+end
+
+@testimage_gen function spiral(size::Tuple{Integer, Integer}=(81,81); numTurns::Real=4, thickness::Real=2)
+	radius = minimum(size)/2
+	Drawing(size..., :image)
+	origin()
+	background("black")
+	sethue("white")
+	setline(thickness)
+	Luxor.spiral(radius/numTurns/(2π)*0.95, 1, log=false, period=numTurns*2π, :stroke)
+
+	image = Float32.(Gray.(image_as_matrix()))
+  finish()
+
+	return image
+end
+
+@testimage_gen function four_quadrant_bar(size::Tuple{Integer, Integer}=(81,81); numBars::Real=4, thickness::Real=2)
+	image = zeros(Float32, size)
+
+	length = round(Int64, size[1]/2.2)
+	dist = round(Int64, (size[1]/2-(numBars-1)*thickness)/(numBars-0)/2)
+
+	for i in 1:numBars
+		@inbounds image[dist:dist+length, (2*i-1)*dist:(2*i-1)*dist+thickness] .= 1
+	end
+
+	for i in 1:numBars
+		@inbounds image[end-dist-length:end-dist, end-(2*i-1)*dist-thickness:end-(2*i-1)*dist] .= 1
+	end
+
+	length = round(Int64, size[2]/2.2)
+	dist = round(Int64, (size[2]/2-(numBars-1)*thickness)/(numBars-0)/2)
+
+	for i in 1:numBars
+		@inbounds image[end-(2*i-1)*dist-thickness:end-(2*i-1)*dist, dist:dist+length] .= 1
+	end
+
+	for i in 1:numBars
+		@inbounds image[(2*i-1)*dist:(2*i-1)*dist+thickness, end-dist-length:end-dist] .= 1
+	end
+
+	return image
+end
+
+# Create a mixed dot phantom taken from Top et al. (2019)
+@testimage_gen function mixed_dot(swidth::Integer=3, mwidth::Integer=4, lwidth::Integer=5, radius::Float64=3.5, numSquares::Integer=3)
+	image = zeros(260,260)
+  block = generateBlock(swidth, mwidth, lwidth, radius, numSquares)
+  blockX = size(block,2)
+  blockY = size(block,1)
+  dist = 9
+
+  for i in 0:3, j in 0:3
+    offsetX = 33
+    offsetY = 35
+    image[offsetX+i*blockY+i*dist:offsetX+(i+1)*blockY+i*dist-1, offsetY+j*blockX+j*dist:offsetY+(j+1)*blockX+j*dist-1] = block
+  end
+
+  # Reduce image on the size 160x160
+  image = image[46:end-54, 55:end-45]
+
+  M = size(image,1)
+  N = size(image,2)
+  r = 82
+
+  # Remove parts in blocks that range out of radius using the flood-fill algorithm
+  for i in 1:M, j in 1:N
+    if round(sqrt((i-78)^2+(j-80)^2)) > r
+      if image[i,j] == 1
+        flood_fill(image, (i,j))
+      end
+    end
+  end
+
+  # TODO: Fix this
+  # Remove the rest...
+  image[1:5, 44:105] .= 0
+  image[20:28, 20:27] .= 0
+  image[20:28, 20:27] .= 0
+  image[4:12, 115:121] .= 0
+  image[12:19, 124:130] .= 0
+  image[46:54, 152:158] .= 0
+  image[145:154, 38:44] .= 0
+  image[32:39, 144:151] .= 0
+  image[41:51, 1:8] .= 0
+  image[151:158, 60:76] .= 0
+  image[5:15, 30:42] .= 0
+
+	return image
+end
+
+# Function that generates a complete block of small, medium and large squares and circles
+function generateBlock(swidth, mwidth, lwidth, radius, numSquares)
+	block = zeros(40,44)
+
+	# Small squares
+	dist = 4
+	for i in 0:numSquares-1, j in 0:numSquares-1
+		block[1+i*swidth+i*dist:(i+1)*swidth+i*dist, 2+j*swidth+j*dist:1+(j+1)*swidth+j*dist] .=1
+	end
+
+  # Medium squares
+  dist = 4
+
+  for i in 0:numSquares-1, j in 0:numSquares-1
+		block[end-i*dist-(i+1)*mwidth+1:end-i*dist-i*mwidth, end-j*dist-(j+1)*mwidth:end-j*dist-j*mwidth-1] .=1
+	end
+
+	# Large squares
+	distX = 3
+	distY = 4
+
+  for i in 0:numSquares-2, j in 0:numSquares-1
+		block[1+i*lwidth+i*distY:(i+1)*lwidth+i*distY, end-j*distX-(j+1)*lwidth+1:end-j*distX-j*lwidth] .=1
+	end
+
+  # Circles
+  centerX = 5
+  centerY = size(block, 1)-15
+  circle(block, centerX, centerY, radius)
+
+  centerX = 15
+  centerY = size(block,1)-15
+  circle(block, centerX, centerY, radius)
+
+  centerX = 5
+  centerY = size(block,1)-5
+  circle(block, centerX, centerY, radius)
+
+  centerX = 15
+  centerY = size(block,1)-5
+  circle(block, centerX, centerY, radius)
+
+  return block
+end
+
+function circle(block,centerX, centerY, radius)
+  for i in -centerX:centerX
+    for j in -centerX:centerX
+      if sqrt(i^2+j^2) < radius
+        block[centerY+i, centerX+j] = 1
+      end
+    end
+  end
+end
+
+# Function describing the flood-fill algorithm used to remove certain parts of the blocks
+function flood_fill(arr, (x, y))
+  # check every element in the neighborhood of the element at (x, y) in arr
+  for x_off in -1:1
+    for y_off in -1:1
+      # put the next part in a try-catch block so that if any index
+      # is outside the array, we move on to the next element.
+      try
+        # if the element is a 1, change it to a 0 and call flood_fill
+        # on it so it fills it's neighbors
+        if arr[x + x_off, y + y_off] == 1
+          arr[x + x_off, y + y_off] = 0
+          flood_fill(arr, (x + x_off, y + y_off))
+        end
+      catch
+        continue
+      end
+    end
+  end
 end
