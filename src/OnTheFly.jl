@@ -1,3 +1,4 @@
+using ImageTransformations
 
 export delta_image
 """
@@ -141,6 +142,143 @@ julia> image = checker_image((8, 8), (2, 3), (2, 1))
 	end
 
 	return image
+end
+
+export derenzo_image
+"""
+		$(SIGNATURES)
+
+Function to generate Derenzo Phantom. This is done by specifying the diameter of the phantom and the size in pixel and 
+for each sextant of the phantom. The algorithm tries to fill the radius with as many dots as possible.
+
+# Arguments
+- `diameter::Int64`: Diameter in pixel of the phantom.
+- `pointSizePerSextant::Vector{Integer}`: Size for the points in each sextant. Should atleast be of length 6.
+- `gapBetweenSextants::Union{Int64, Vector{Int64}}`: Gap between the center of the phantom and the sextants.
+
+# Optional Arguments
+`distanceBetweenPoints::Union{Int64, Vector{Int64}}=-1`: The ctc distance of the holes. 
+`arrowShape::Bool=false`: If true the last row of each sextant will have another row of one less hole if it fits.
+
+# Returns
+- `image::Matrix{Float64}`: The resulting derenzo phantom.
+
+# Examples
+This call generates a phantom similar to QRMs Mini Derenzo Phantom:
+```
+derenzo = derenzo_image2(600, 
+	Int.(round.([0.6*500, 0.8*500, 1.0*500, 1.2*500, 1.5*500, 2.0*500]./29)), 
+	30,
+	distanceBetweenPoints=Int.(round.([1.2*500, 1.6*500, 2.0*500, 2.4*500, 3.0*500, 4.0*500]./29)),
+	arrowShape=true)
+```
+"""
+@testimage_gen function derenzo_image(diameter::Int64, pointSizePerSextant::Vector{Int64}, gapBetweenSextants::Union{Int64, Vector{Int64}}; distanceBetweenPoints::Union{Int64, Vector{Int64}}=-1, arrowShape::Bool=false)
+	# Check validity of params
+	length(pointSizePerSextant) >= 6 || throw(ArgumentError("Invalid length of vector $pointSizePerSextant. Should atleast be 6!"))
+	(gapBetweenSextants isa Vector{Int64} && length(gapBetweenSextants) < 6) && throw(ArgumentError("Invalid length of vector $gapBetweenSextants. Should atleast be 6 or a scalar!"))
+	# if the points are too small, it would result in interpolation errors.
+	minimum(pointSizePerSextant) >= 4 || throw(ArgumentError("Invalid size in $pointSizePerSextant. Should be atleast 4 pixels."))
+
+	# calculate radius and width
+	radius = round(Int, (diameter - 2*maximum(gapBetweenSextants)) / 2) + Int(ceil(maximum(pointSizePerSextant)/2))
+	width(r) = Int(floor(2*tan(π/6)*r))
+	widthSextant = width(radius) 
+
+	# Add to radius if we want arrow shape
+	if arrowShape 
+		radius += (distanceBetweenPoints == -1 ? maximum(pointSizePerSextant) : maximum(distanceBetweenPoints)) + maximum(pointSizePerSextant)
+	end
+
+	# Compute sextant size
+	sextantSize = (radius, widthSextant)
+	println(sextantSize)
+
+	# Create final image with correct dimensions
+	l = 2*Int(round(sqrt(radius^2 + widthSextant^2/4)) + maximum(pointSizePerSextant) + maximum(gapBetweenSextants))
+	image = zeros(Int64, (l, l))
+	midImage = Int(round(l / 2))
+	println("Image Size: ", l)
+
+	# Compute each sextant and add to image
+	for numSextant in 1:6
+		# Create the shape according to pointSizePerSextant
+		pointSize = pointSizePerSextant[numSextant]
+
+		shape = zeros((pointSize, pointSize))
+		halfSize = pointSize / 2		
+
+		for x in 1:pointSize
+			for y in 1:pointSize
+				if ((x - halfSize - 0.5)^2/(halfSize-0.5)^2) + ((y - halfSize - 0.5)^2/(halfSize - 0.5)^2) <= 1.0
+					shape[x, y] = 1
+				end
+			end		
+		end
+
+		# Initialize variables
+		horiDist = 0		# The horizontal distance between the holes
+		vertDist = 0		# The vertical distance between the holes
+		lastHoleTop = 1	# The height of the center of the last row of holes
+		numOfPoints = 1		# How many points to place in this row
+		sextant = zeros(Int64, sextantSize)	# The sextant to place the holes in
+		shapesFit = true	# Boolean to determine if more holes fit in sextant
+		widthReached = false # When arrow shape is desired determines when last row was added
+
+		while shapesFit
+			# Calculate the distances
+			horiDist = 2*(distanceBetweenPoints == -1 ? pointSize : (distanceBetweenPoints isa Vector{Int64} ? distanceBetweenPoints[numSextant] : distanceBetweenPoints))
+			vertDist = round(Int64, sqrt(horiDist^2 - horiDist^2/4))
+			
+			# fit numOfPoints shapes to matrix
+			numZeros = widthSextant - pointSize*numOfPoints - (horiDist - pointSize)*(numOfPoints-1)
+			shapes = zeros(pointSize, Int(floor(numZeros/2)))
+			shapes = hcat(shapes, shape)
+			for num in 1:numOfPoints
+				if numOfPoints == num
+					shapes = hcat(shapes, zeros(pointSize, Int(ceil(numZeros/2))))
+					break
+				end
+
+				distMatrix = zeros(pointSize, (horiDist - pointSize))
+				shapes = hcat(shapes, distMatrix)
+				shapes = hcat(shapes, shape)
+			end
+
+			# Fit shape in the right row of sextant
+			if radius >= pointSize + lastHoleTop
+				sextant[lastHoleTop:lastHoleTop+pointSize-1, 1:end] = shapes
+				lastHoleTop += vertDist
+			end
+
+			# each row one more point
+			numOfPoints += 1
+
+			shapesFitHorizontally = widthSextant >= numOfPoints * pointSize + (horiDist - pointSize)*(numOfPoints-1) 
+			shpesFitVertically = radius >= pointSize + lastHoleTop
+
+			if !shapesFitHorizontally && arrowShape && !widthReached
+				numOfPoints -= 2
+				shapesFit = true
+				widthReached = true
+			else
+				shapesFit = shapesFitHorizontally && shpesFitVertically && !widthReached
+			end
+		end		
+		# Putting sextants together	
+		# calculate space between last row of points and edge of sextant	
+		spaceBetween = gapBetweenSextants == -1 ? radius - lastHoleTop + (vertDist - pointSize) : (gapBetweenSextants isa Vector{Int64} ? gapBetweenSextants[numSextant] : gapBetweenSextants)
+		offsetX = Int(round(spaceBetween / 2) + spaceBetween)					
+		rotatedImage = round.(imrotate(image, π/3), digits=4) 
+		replace!(rotatedImage, NaN => 0.0)
+
+		rotatedImage[midImage+offsetX:midImage+offsetX+radius-1, midImage-Int(ceil(widthSextant/2)):midImage+Int(floor(widthSextant/2))-1] += sextant
+
+		image = rotatedImage	
+	end
+
+	# Constain image to specified size
+	return image[1:l, 1:l]
 end
 
 """
