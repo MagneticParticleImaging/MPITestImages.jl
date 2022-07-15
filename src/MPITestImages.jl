@@ -3,6 +3,7 @@ module MPITestImages
 using DocStringExtensions
 using Pkg.Artifacts
 using FileIO
+using Luxor
 using Images
 
 const remotefiles = [
@@ -36,7 +37,8 @@ function addOnTheFlyImage(fun::Symbol)
 			@warn "The on-the-fly image `$(string(fun))` is already linked with a remote file."
 		end
 	else
-		error("The on-the-fly image `$(string(fun))` has already been added.")
+		@warn "The on-the-fly image `$(string(fun))` has already been added."
+		#error("The on-the-fly image `$(string(fun))` has already been added.")
 	end
 end
 
@@ -45,7 +47,7 @@ export testimage_gen
 Macro for annotating functions that can be used to generate test images.
 """
 macro testimage_gen(expr::Expr)
-	addOnTheFlyImage(expr.args[1].args[1]) # Note: use dump to debug expr
+	addOnTheFlyImage(expr.args[1].args[1]) # Note: use dump to debug expr; TODO: Use MacroTools
 	return expr
 end
 
@@ -55,7 +57,7 @@ export testimage
 
 Retrieve a test image with the given `name` and the matching parameters.
 
-Note: The name must correspond either to a remote file or a function 
+Note: The name must correspond either to a remote file or a function
 			name annotated by the `testimage_gen` macro. If both exist, precedence
 			is given to the function.
 
@@ -87,7 +89,7 @@ function testimage(name::String, args...; kwargs...)
 				@warn "No scale provided. Using default image size."
 			end
 		end
-		
+
 		return load(joinpath(rootpath, "phantoms", name*".png"))
 	else
 		error("The given name `$name` did not match a known test image.")
