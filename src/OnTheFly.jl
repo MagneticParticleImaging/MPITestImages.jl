@@ -281,6 +281,69 @@ derenzo = derenzo_image2(600,
 	return image[1:l, 1:l]
 end
 
+export jaszczak_phantom
+"""
+		$(SIGNATURES)
+
+Function to generate the Jaszczak Phantom. It is necessary to generate a derenzo phantom first as it is part of the 3D body to generate.
+
+# Arguments
+- `radiusSpheres::Vector{Int64}`: Vector with length 6 giving the radius of each sphere of the phantom.
+- `derenzoImage::Matrix{Float64}`: The derenzo phantom which is part of the Jaszczak Phantom. 
+The dimensions of this image dictates the depth and width of the resulting phantom.
+- `height::Int64`: The height of the phantom.
+- `distanceSpheresToRods::Int64`: The distance between the spheres and the beginning of the rods.
+- `heightRods::Int64`: The height of the rods (The derenzo phantom part).
+
+# Returns
+- `Array{Float64, 3}`: The three dimensional phantom.
+"""
+@testimage_gen function jaszczak_phantom(radiusSpheres::Vector{Int64}, derenzoImage::Matrix{Float64}, height::Int64, distanceSpheresToRods::Int64, heightRods::Int64)
+	length(radiusSpheres) >= 6 || throw(ArgumentError("Invalid length of vector $radiusSpheres. Should atleast be 6!"))
+
+	sliceSize = size(derenzoImage)
+	distanceSpheresToCenter = round(Int64, sliceSize[1] / 4)
+	maxSphereHeight = Int(2*maximum(radiusSpheres))
+	(maxSphereHeight < distanceSpheresToCenter / 2 && maxSphereHeight < height - distanceSpheresToRods - heightRods) || throw(ArgumentError("Radius of spheres to big for given derenzo image and height."))
+	sphereSlice = zeros(sliceSize[1], sliceSize[2], maxSphereHeight)
+
+	for sphere in 1:6
+		radius = radiusSpheres[sphere]
+		shape = zeros(Int.((2*radius, 2*radius, 2*radius)))
+		
+		# Create Sphere
+		for x in 1:2*radius
+			for y in 1:2*radius
+				for z in 1:2*radius
+					if ((x - radius - 0.5)^2/(radius-0.5)^2) + ((y - radius - 0.5)^2/(radius - 0.5)^2) + ((z - radius - 0.5)^2/(radius - 0.5)^2) <= 1.0
+						shape[x, y, z] = 1
+					end
+				end
+			end		
+		end
+		
+		# Place sphere in correct position		
+		x = 2*distanceSpheresToCenter + round(Int64, distanceSpheresToCenter * cos((sphere - 1) * π/3))
+		y = 2*distanceSpheresToCenter + round(Int64, distanceSpheresToCenter * sin((sphere - 1) * π/3))
+		z = round(Int64, maxSphereHeight/2)
+
+		sphereSlice[x-radius+1:x+radius, y-radius+1:y+radius, z-radius+1:z+radius] .= shape
+	end
+
+	# Stack derenzo phantoms
+	sliceRods = Array{Float64}(undef, sliceSize[1], sliceSize[2], heightRods)
+	for i=1:heightRods
+		sliceRods[:, :, i] .= derenzoImage
+	end
+
+	# combine everything
+	result = zeros(sliceSize[1], sliceSize[2], height)
+	result[:, :, 1:heightRods] .= sliceRods
+	result[:, :, heightRods+distanceSpheresToRods:heightRods+distanceSpheresToRods+maxSphereHeight-1] .= sphereSlice
+	
+	return result
+end
+
 """
 https://en.wikipedia.org/wiki/Siemens_star
 """
