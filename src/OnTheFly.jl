@@ -192,13 +192,11 @@ derenzo = derenzo_image2(600,
 
 	# Compute sextant size
 	sextantSize = (radius, widthSextant)
-	println(sextantSize)
 
 	# Create final image with correct dimensions
 	l = 2*Int(round(sqrt(radius^2 + widthSextant^2/4)) + maximum(pointSizePerSextant) + maximum(gapBetweenSextants))
 	image = zeros(Int64, (l, l))
 	midImage = Int(round(l / 2))
-	println("Image Size: ", l)
 
 	# Compute each sextant and add to image
 	for numSextant in 1:6
