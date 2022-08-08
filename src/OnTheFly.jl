@@ -1,5 +1,3 @@
-using ImageTransformations
-
 export delta_image
 """
     $(SIGNATURES)
