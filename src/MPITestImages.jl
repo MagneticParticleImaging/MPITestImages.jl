@@ -5,6 +5,7 @@ using Pkg.Artifacts
 using FileIO
 using Luxor
 using Images
+using MacroTools
 
 const remotefiles = [
 	"Phantom1",
@@ -27,27 +28,31 @@ const remotefiles = [
 onTheFlyImages = Vector{Symbol}()
 
 """
+    $(SIGNATURES)
+
 Add a function symbol to the list of known test image generation functions.
 """
 function addOnTheFlyImage(fun::Symbol)
 	if !(fun in onTheFlyImages)
-		if !(fun in remotefiles)
+		if !(string(fun) in remotefiles)
 			push!(onTheFlyImages, fun)
 		else
-			@warn "The on-the-fly image `$(string(fun))` is already linked with a remote file."
+			@warn "The on-the-fly image `$(string(fun))` is already linked with a remote file but the on-the-fly variant will be priorized."
 		end
 	else
-		@warn "The on-the-fly image `$(string(fun))` has already been added."
-		#error("The on-the-fly image `$(string(fun))` has already been added.")
+		error("The on-the-fly image `$(string(fun))` has already been added.")
 	end
 end
 
 export testimage_gen
 """
+    $(SIGNATURES)
+
 Macro for annotating functions that can be used to generate test images.
 """
 macro testimage_gen(expr::Expr)
-	addOnTheFlyImage(expr.args[1].args[1]) # Note: use dump to debug expr; TODO: Use MacroTools
+	definitionDict = splitdef(expr)
+	addOnTheFlyImage(definitionDict[:name])
 	return expr
 end
 
@@ -105,28 +110,7 @@ function changeScale(name::String, rootpath::String, size::Tuple{Integer, Intege
 	return imresize(image, size)
 end
 
-export TestImage
-"""
-Struct describing a testimage.
-"""
-struct TestImage
-	name::String
-	data::AbstractArray
-	args::Tuple
-	kwargs::Any
-
-	function TestImage(name::String, args...; kwargs...)
-		data = testimage(name, args...; kwargs...)
-		return new(name, data, args, kwargs)
-	end
-end
-
-export name
-name(img::TestImage) = img.name
-
-export data
-data(img::TestImage) = img.data
-
+include("TestImage.jl")
 include("OnTheFly.jl")
 
 end
