@@ -161,7 +161,7 @@ for each sextant of the phantom. The algorithm tries to fill the radius with as 
 `arrowShape::Bool=false`: If true the last row of each sextant will have another row of one less hole if it fits.
 
 # Returns
-- `image::Matrix{Float64}`: The resulting derenzo phantom.
+- `image::Matrix{Float64}`: The resulting Derenzo phantom.
 
 # Examples
 This call generates a phantom similar to QRMs Mini Derenzo Phantom:
@@ -275,7 +275,7 @@ derenzo = derenzo_image2(600,
 		image = rotatedImage	
 	end
 
-	# Constain image to specified size
+	# Constrain image to specified size
 	return image[1:l, 1:l]
 end
 
