@@ -42,7 +42,6 @@ function addOnTheFlyImage(fun::Symbol)
 	end
 end
 
-export testimage_gen
 """
 Macro for annotating functions that can be used to generate test images.
 """
