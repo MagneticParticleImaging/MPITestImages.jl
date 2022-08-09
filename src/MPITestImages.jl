@@ -44,7 +44,6 @@ function addOnTheFlyImage(fun::Symbol)
 	end
 end
 
-export testimage_gen
 """
     $(SIGNATURES)
 
