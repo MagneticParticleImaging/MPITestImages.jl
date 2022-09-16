@@ -159,12 +159,12 @@ for each sextant of the phantom. The algorithm tries to fill the radius with as 
 `arrowShape::Bool=false`: If true the last row of each sextant will have another row of one less hole if it fits.
 
 # Returns
-- `image::Matrix{Float64}`: The resulting derenzo phantom.
+- `image::Matrix{Float64}`: The resulting Derenzo phantom.
 
 # Examples
 This call generates a phantom similar to QRMs Mini Derenzo Phantom:
 ```
-derenzo = derenzo_image2(600, 
+derenzo = derenzo_image(600, 
 	Int.(round.([0.6*500, 0.8*500, 1.0*500, 1.2*500, 1.5*500, 2.0*500]./29)), 
 	30,
 	distanceBetweenPoints=Int.(round.([1.2*500, 1.6*500, 2.0*500, 2.4*500, 3.0*500, 4.0*500]./29)),
@@ -190,13 +190,11 @@ derenzo = derenzo_image2(600,
 
 	# Compute sextant size
 	sextantSize = (radius, widthSextant)
-	println(sextantSize)
 
 	# Create final image with correct dimensions
 	l = 2*Int(round(sqrt(radius^2 + widthSextant^2/4)) + maximum(pointSizePerSextant) + maximum(gapBetweenSextants))
 	image = zeros(Int64, (l, l))
 	midImage = Int(round(l / 2))
-	println("Image Size: ", l)
 
 	# Compute each sextant and add to image
 	for numSextant in 1:6
@@ -275,10 +273,144 @@ derenzo = derenzo_image2(600,
 		image = rotatedImage	
 	end
 
-	# Constain image to specified size
+	# Constrain image to specified size
 	return image[1:l, 1:l]
 end
 
+export jaszczak_phantom
+"""
+		$(SIGNATURES)
+
+Function to generate the Jaszczak Phantom. It is necessary to generate a Derenzo phantom first as it is part of the 3D body to generate.
+
+# Arguments
+- `radiusSpheres::Vector{Int64}`: Vector with length 6 giving the radius of each sphere of the phantom.
+- `derenzoImage::Matrix{Float64}`: The Derenzo phantom which is part of the Jaszczak Phantom. 
+The dimensions of this image dictates the depth and width of the resulting phantom.
+- `height::Int64`: The height of the phantom.
+- `distanceSpheresToRods::Int64`: The distance between the spheres and the beginning of the rods.
+- `heightRods::Int64`: The height of the rods (The Derenzo phantom part).
+
+# Returns
+- `Array{Float64, 3}`: The three dimensional phantom.
+"""
+@testimage_gen function jaszczak_phantom(radiusSpheres::Vector{Int64}, derenzoImage::Matrix{Float64}, height::Int64, distanceSpheresToRods::Int64, heightRods::Int64)
+	length(radiusSpheres) >= 6 || throw(ArgumentError("Invalid length of vector $radiusSpheres. Should atleast be 6!"))
+
+	sliceSize = size(derenzoImage)
+	distanceSpheresToCenter = round(Int64, sliceSize[1] / 4)
+	maxSphereHeight = Int(2*maximum(radiusSpheres))
+	(maxSphereHeight < distanceSpheresToCenter / 2 && maxSphereHeight < height - distanceSpheresToRods - heightRods) || throw(ArgumentError("Radius of spheres to big for given derenzo image and height."))
+	sphereSlice = zeros(sliceSize[1], sliceSize[2], maxSphereHeight)
+
+	for sphere in 1:6
+		radius = radiusSpheres[sphere]
+		shape = zeros(Int.((2*radius, 2*radius, 2*radius)))
+		
+		# Create Sphere
+		for x in 1:2*radius
+			for y in 1:2*radius
+				for z in 1:2*radius
+					if ((x - radius - 0.5)^2/(radius-0.5)^2) + ((y - radius - 0.5)^2/(radius - 0.5)^2) + ((z - radius - 0.5)^2/(radius - 0.5)^2) <= 1.0
+						shape[x, y, z] = 1
+					end
+				end
+			end		
+		end
+		
+		# Place sphere in correct position		
+		x = 2*distanceSpheresToCenter + round(Int64, distanceSpheresToCenter * cos((sphere - 1) * π/3))
+		y = 2*distanceSpheresToCenter + round(Int64, distanceSpheresToCenter * sin((sphere - 1) * π/3))
+		z = round(Int64, maxSphereHeight/2)
+
+		sphereSlice[x-radius+1:x+radius, y-radius+1:y+radius, z-radius+1:z+radius] .= shape
+	end
+
+	# Stack derenzo phantoms
+	sliceRods = Array{Float64}(undef, sliceSize[1], sliceSize[2], heightRods)
+	for i=1:heightRods
+		sliceRods[:, :, i] .= derenzoImage
+	end
+
+	# combine everything
+	result = zeros(sliceSize[1], sliceSize[2], height)
+	result[:, :, 1:heightRods] .= sliceRods
+	result[:, :, heightRods+distanceSpheresToRods:heightRods+distanceSpheresToRods+maxSphereHeight-1] .= sphereSlice
+	
+	return result
+end
+
+"""
+Generates Spatial Resolution Phantom.
+
+Adapted from https://www.qrm.de/en/products/3d-spatial-resolution-slice-sensitivity-and-wire-mtf-phantom/
+
+# Arguments
+- `size::Tuple{Integer, Integer, Integer}`: The size of the 3D phantom.
+- `numHolesInRow::Integer`: How many holes should be placed in one row.
+- `numRows::Integer`: Number of rows in the phantom.
+- `holeSizes::Vector{Integer}`: Sizes of holes at each row. This vector has to have an equal length to the number of rows present.
+
+# Returns
+- `Array{Float64, 3}`: The three dimensional phantom.
+"""
+@testimage_gen function spatial_resolution_phantom(sizePhantom::Tuple{Int64, Int64, Int64}, numHolesInRow::Int64, numRows::Int64, holeSizes::Vector{Int64})
+	length(holeSizes) >= numRows || throw(ArgumentError("Every row must have a specified size in $(holeSizes)."))
+
+	# Calculate gaps and borders and verify arguments
+	maxHoleSize = maximum(holeSizes)
+	border = round(Integer, (sizePhantom[2] - 2*numHolesInRow*maxHoleSize + maxHoleSize) / 2)
+	border < 1 && throw(ArgumentError("Size of the phantom is too small to accommodate for desired hole size and number."))
+
+	yDist = floor(Integer, (sizePhantom[1] - numRows*maxHoleSize) / (numRows + 1))
+	yDist < 1 && throw(ArgumentError("Size of the phantom is too small to accommodate for desired hole size and number of rows."))
+
+	# Create phantom
+	slice = zeros(yDist, sizePhantom[2])
+
+	# Fit holes in phantom
+	for row in 1:numRows
+		# Create hole shape
+		holeSize = holeSizes[row]
+
+		shape = zeros((maxHoleSize, maxHoleSize))
+		halfSize = holeSize / 2		
+
+		for x in 1:holeSize
+			for y in 1:holeSize
+				if ((x - halfSize - 0.5)^2/(halfSize-0.5)^2) + ((y - halfSize - 0.5)^2/(halfSize - 0.5)^2) <= 1.0
+					shape[x, y] = 1
+				end
+			end		
+		end
+
+		# Create row
+		rowShape = zeros((maxHoleSize, border))
+		rowShape = hcat(rowShape, shape)
+		for hole in 1:(numHolesInRow - 1) 
+			rowShape = hcat(rowShape, zeros(maxHoleSize, holeSize))
+			rowShape = hcat(rowShape, shape)
+		end
+		rowShape = hcat(rowShape, zeros((maxHoleSize, sizePhantom[2] - size(rowShape)[2])))
+
+		slice = vcat(slice, rowShape)
+		slice = vcat(slice, zeros(yDist, sizePhantom[2]))
+	end
+
+	# Fill rest of slice in case of rounding issues
+	if size(slice, 1) < sizePhantom[1]
+		slice = vcat(slice, zeros(sizePhantom[1]-size(slice, 1), sizePhantom[2]))
+	end
+
+	# Stack the slices
+	phantom = Array{Float64}(undef, sizePhantom)
+	for i=1:sizePhantom[3]
+		phantom[:, :, i] .= slice
+	end
+
+	return phantom
+end										
+										
 """
 https://en.wikipedia.org/wiki/Siemens_star
 """

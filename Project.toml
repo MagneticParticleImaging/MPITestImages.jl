@@ -4,7 +4,6 @@ authors = ["Jonas Schumacher <jonas.schumacher@imte.fraunhofer.de> and contribut
 version = "0.1.5"
 
 [deps]
-Compat = "34da2185-b29b-5c13-b0c7-acf172513d20"
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 FileIO = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
 Images = "916415d5-f1e6-5110-898d-aaa5f9f070e0"
@@ -13,7 +12,6 @@ MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 
 [compat]
-Compat = "3, 4"
 DocStringExtensions = "0.8, 0.9"
 Documenter = "0.27"
 FileIO = "1"
