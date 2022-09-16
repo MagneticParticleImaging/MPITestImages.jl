@@ -343,6 +343,8 @@ end
 """
 Generates Spatial Resolution Phantom.
 
+Adapted from https://www.qrm.de/en/products/3d-spatial-resolution-slice-sensitivity-and-wire-mtf-phantom/
+
 # Arguments
 - `size::Tuple{Integer, Integer, Integer}`: The size of the 3D phantom.
 - `numHolesInRow::Integer`: How many holes should be placed in one row.
@@ -363,7 +365,7 @@ Generates Spatial Resolution Phantom.
 	yDist = floor(Integer, (sizePhantom[1] - numRows*maxHoleSize) / (numRows + 1))
 	yDist < 1 && throw(ArgumentError("Size of the phantom is too small to accommodate for desired hole size and number of rows."))
 
-	# Creat phantom
+	# Create phantom
 	slice = zeros(yDist, sizePhantom[2])
 
 	# Fit holes in phantom
@@ -393,6 +395,11 @@ Generates Spatial Resolution Phantom.
 
 		slice = vcat(slice, rowShape)
 		slice = vcat(slice, zeros(yDist, sizePhantom[2]))
+	end
+
+	# Fill rest of slice in case of rounding issues
+	if size(slice, 1) < sizePhantom[1]
+		slice = vcat(slice, zeros(sizePhantom[1]-size(slice, 1), sizePhantom[2]))
 	end
 
 	# Stack the slices
