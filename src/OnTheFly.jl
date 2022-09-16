@@ -341,6 +341,70 @@ The dimensions of this image dictates the depth and width of the resulting phant
 end
 
 """
+Generates Spatial Resolution Phantom.
+
+# Arguments
+- `size::Tuple{Integer, Integer, Integer}`: The size of the 3D phantom.
+- `numHolesInRow::Integer`: How many holes should be placed in one row.
+- `numRows::Integer`: Number of rows in the phantom.
+- `holeSizes::Vector{Integer}`: Sizes of holes at each row. This vector has to have an equal length to the number of rows present.
+
+# Returns
+- `Array{Float64, 3}`: The three dimensional phantom.
+"""
+@testimage_gen function spatial_resolution_phantom(sizePhantom::Tuple{Int64, Int64, Int64}, numHolesInRow::Int64, numRows::Int64, holeSizes::Vector{Int64})
+	length(holeSizes) >= numRows || throw(ArgumentError("Every row must have a specified size in $(holeSizes)."))
+
+	# Calculate gaps and borders and verify arguments
+	maxHoleSize = maximum(holeSizes)
+	border = round(Integer, (sizePhantom[2] - 2*numHolesInRow*maxHoleSize + maxHoleSize) / 2)
+	border < 1 && throw(ArgumentError("Size of the phantom is too small to accommodate for desired hole size and number."))
+
+	yDist = floor(Integer, (sizePhantom[1] - numRows*maxHoleSize) / (numRows + 1))
+	yDist < 1 && throw(ArgumentError("Size of the phantom is too small to accommodate for desired hole size and number of rows."))
+
+	# Creat phantom
+	slice = zeros(yDist, sizePhantom[2])
+
+	# Fit holes in phantom
+	for row in 1:numRows
+		# Create hole shape
+		holeSize = holeSizes[row]
+
+		shape = zeros((maxHoleSize, maxHoleSize))
+		halfSize = holeSize / 2		
+
+		for x in 1:holeSize
+			for y in 1:holeSize
+				if ((x - halfSize - 0.5)^2/(halfSize-0.5)^2) + ((y - halfSize - 0.5)^2/(halfSize - 0.5)^2) <= 1.0
+					shape[x, y] = 1
+				end
+			end		
+		end
+
+		# Create row
+		rowShape = zeros((maxHoleSize, border))
+		rowShape = hcat(rowShape, shape)
+		for hole in 1:(numHolesInRow - 1) 
+			rowShape = hcat(rowShape, zeros(maxHoleSize, holeSize))
+			rowShape = hcat(rowShape, shape)
+		end
+		rowShape = hcat(rowShape, zeros((maxHoleSize, sizePhantom[2] - size(rowShape)[2])))
+
+		slice = vcat(slice, rowShape)
+		slice = vcat(slice, zeros(yDist, sizePhantom[2]))
+	end
+
+	# Stack the slices
+	phantom = Array{Float64}(undef, sizePhantom)
+	for i=1:sizePhantom[3]
+		phantom[:, :, i] .= slice
+	end
+
+	return phantom
+end										
+										
+"""
 https://en.wikipedia.org/wiki/Siemens_star
 """
 @testimage_gen function siemens_star(size::Tuple{Integer, Integer}=(81,81); numSpokes::Integer=8)
