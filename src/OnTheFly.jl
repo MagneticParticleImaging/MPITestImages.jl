@@ -600,12 +600,12 @@ end
 
 @testimage_gen function sine_bar_phantom(size::Tuple{Integer, Integer}=(81,81); N=3, direction="X", phase=1.5π)
 	if direction == "X"
-		data = repeat(sin.(range(0, 2π*N, length=size[1]+1)[1:end-1] .+ phase), 1, size[2])
+		image = repeat(sin.(range(0, 2π*N, length=size[1]+1)[1:end-1] .+ phase), 1, size[2])'
 	elseif direction == "Y"
-		data = repeat(sin.(range(0, 2π*N, length=size[1]+1)[1:end-1] .+ phase), 1, size[2])'
+		image = repeat(sin.(range(0, 2π*N, length=size[1]+1)[1:end-1] .+ phase), 1, size[2])
 	else
 		error("Direction `$direction` not valid.")
 	end
 
-	return data
+	return image.*0.5.+0.5 # Shift to interval [0, 1]
 end
