@@ -24,4 +24,18 @@ DocMeta.setdocmeta!(MPITestImages, :DocTestSetup, :(using MPITestImages); recurs
     doctest(MPITestImages; manual = false)
   end
 
+  @testset "TestImage struct" begin
+    # generate am empty test image
+    name = "This Image does not exist"
+
+    @test_throws ErrorException("The given name `$name` did not match a known test image.") newTestImage = TestImage(name)
+
+    # now generate a simple image that does exist
+    name = "sine_bar_phantom"
+    newTestImage = TestImage(name, (30, 30))
+
+    @test MPITestImages.name(newTestImage) == name
+    @test data(newTestImage)[1, 6] == 1.0 && isapprox(data(newTestImage)[end, end], 0.095, atol=0.001)
+  end
+
 end
