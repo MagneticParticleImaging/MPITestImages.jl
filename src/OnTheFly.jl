@@ -1,3 +1,4 @@
+
 export delta_image
 """
     $(SIGNATURES)
@@ -300,7 +301,7 @@ The dimensions of this image dictates the depth and width of the resulting phant
 	sliceSize = size(derenzoImage)
 	distanceSpheresToCenter = round(Int64, sliceSize[1] / 4)
 	maxSphereHeight = Int(2*maximum(radiusSpheres))
-	(maxSphereHeight < distanceSpheresToCenter / 2 && maxSphereHeight < height - distanceSpheresToRods - heightRods) || throw(ArgumentError("Radius of spheres to big for given derenzo image and height."))
+	(maxSphereHeight < distanceSpheresToCenter / 2 && maxSphereHeight < height - distanceSpheresToRods - heightRods) || throw(ArgumentError("Radius of spheres too big for given derenzo image and height."))
 	sphereSlice = zeros(sliceSize[1], sliceSize[2], maxSphereHeight)
 
 	for sphere in 1:6
@@ -340,22 +341,25 @@ The dimensions of this image dictates the depth and width of the resulting phant
 	return result
 end
 
+export spatial_resolution_phantom
 """
+		$(SIGNATURES)
+
 Generates Spatial Resolution Phantom.
 
-Adapted from https://www.qrm.de/en/products/3d-spatial-resolution-slice-sensitivity-and-wire-mtf-phantom/
+Adapted from https://www.elsesolutions.com/wp-content/uploads/2016/02/Spatial-Resolution-Phantom.pdf
 
 # Arguments
 - `size::Tuple{Integer, Integer, Integer}`: The size of the 3D phantom.
 - `numHolesInRow::Integer`: How many holes should be placed in one row.
-- `numRows::Integer`: Number of rows in the phantom.
-- `holeSizes::Vector{Integer}`: Sizes of holes at each row. This vector has to have an equal length to the number of rows present.
+- `holeSizes::Vector{Integer}`: Sizes of holes at each row. The length of this vector is also indicative of the amount of rows in the phantom.
 
 # Returns
 - `Array{Float64, 3}`: The three dimensional phantom.
 """
-@testimage_gen function spatial_resolution_phantom(sizePhantom::Tuple{Int64, Int64, Int64}, numHolesInRow::Int64, numRows::Int64, holeSizes::Vector{Int64})
-	length(holeSizes) >= numRows || throw(ArgumentError("Every row must have a specified size in $(holeSizes)."))
+@testimage_gen function spatial_resolution_phantom(sizePhantom::Tuple{Int64, Int64, Int64}, numHolesInRow::Int64, holeSizes::Vector{Int64})
+	# as many rows, as specified in vector
+	numRows = length(holeSizes)
 
 	# Calculate gaps and borders and verify arguments
 	maxHoleSize = maximum(holeSizes)
@@ -410,9 +414,19 @@ Adapted from https://www.qrm.de/en/products/3d-spatial-resolution-slice-sensitiv
 
 	return phantom
 end										
-										
+
+export siemens_star
 """
-https://en.wikipedia.org/wiki/Siemens_star
+		$(SIGNATURES)
+
+This function generates a siemens star phantom, also known as spoke target. 
+
+# Arguments 
+- `size::Tuple{Integer, Integer}`: The size of the phantom in pixel.
+# Optional Arguments 
+- `numSpokes::Integer=8`: The number of spokes pointing to the center of the phantom.
+# Returns 
+- `Matrix{Float64}`: The resulting image. 
 """
 @testimage_gen function siemens_star(size::Tuple{Integer, Integer}=(81,81); numSpokes::Integer=8)
 	radius = minimum(size)/2
@@ -432,6 +446,20 @@ https://en.wikipedia.org/wiki/Siemens_star
 	return image
 end
 
+export spiral
+"""
+		$(SIGNATURES)
+
+This function generates a spiral phantom. The spiral spirals around the center of the image. 
+
+# Arguments 
+- `size::Tuple{Integer, Integer}`: The size of the phantom in pixel.
+# Optional Arguments 
+- `numTurn::Real=8`: The number of turns of the spiral around the center of the image. 
+- `thickness::Real=2`: The thickness of the spiral.  
+# Returns 
+- `Matrix{Float64}`: The resulting image. 
+"""
 @testimage_gen function spiral(size::Tuple{Integer, Integer}=(81,81); numTurns::Real=4, thickness::Real=2)
 	radius = minimum(size)/2
 	Drawing(size..., :image)
@@ -447,6 +475,45 @@ end
 	return image
 end
 
+export four_quadrant_bar
+"""
+		$(SIGNATURES)
+
+This function generates an image with four quadrants. In each quadrant a specified number of bars with a specified thickness 
+are generated. 
+
+# Arguments
+- `size::Tuple{Integer, Integer}`: The size of the phantom in pixel.
+# Optional Arguments 
+- `numBars::Real=8`: The number of bars to generate in one quadrant. 
+- `thickness::Real=2`: The thickness of one bar. Note, that this is always 1 pixel larger than specified.
+# Returns 
+- `Matrix{Float64}`: The resulting image. 
+
+# Examples
+```
+julia> four_quadrant_bar((18, 18), numBars=2, thickness=0)
+18×18 Matrix{Float32}:
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  1.0  0.0  0.0  0.0  1.0  0.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  0.0  0.0
+ 0.0  1.0  0.0  0.0  0.0  1.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  1.0  0.0  0.0  0.0  1.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  1.0  0.0  0.0  0.0  1.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  1.0  0.0  0.0  0.0  1.0  0.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  0.0  0.0
+ 0.0  1.0  0.0  0.0  0.0  1.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  1.0  0.0  0.0  0.0  1.0  0.0  0.0  0.0  0.0  0.0  1.0  0.0  0.0  0.0  1.0  0.0  0.0
+ 0.0  1.0  0.0  0.0  0.0  1.0  0.0  0.0  0.0  0.0  0.0  1.0  0.0  0.0  0.0  1.0  0.0  0.0
+ 0.0  1.0  0.0  0.0  0.0  1.0  0.0  0.0  0.0  0.0  0.0  1.0  0.0  0.0  0.0  1.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  1.0  0.0  0.0  0.0  1.0  0.0  0.0
+ 0.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  0.0  1.0  0.0  0.0  0.0  1.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  1.0  0.0  0.0  0.0  1.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  1.0  0.0  0.0  0.0  1.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  1.0  0.0  0.0  0.0  1.0  0.0  0.0
+ 0.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  0.0  1.0  0.0  0.0  0.0  1.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+```
+"""
 @testimage_gen function four_quadrant_bar(size::Tuple{Integer, Integer}=(81,81); numBars::Real=4, thickness::Real=2)
 	image = zeros(Float32, size)
 
@@ -475,7 +542,25 @@ end
 	return image
 end
 
-# Create a mixed dot phantom taken from Top et al. (2019)
+export mixed_dot
+"""
+		$(SIGNATURES)
+
+This function generates a mixed dot phantom as implemented by Top et al. (2019). 
+
+The phantom consists of small, medium and large squares as well as circles, that are ordered in a higher level square shape. 
+These higher level squares are again scattered in a circular shape. The size of the overall phantom is hardcoded. 
+
+# Arguments
+- `swidth::Integer`: The width of the smallest squares to generate.
+- `mwidth::Integer`: The width of the medium size squares to generate.
+- `lwidth::Integer`: The width of the largest size squares to generate. 
+- `radius::Float64`: The radius of the circles to generate.
+- `numSquares::Integer`: The number of squares to place along the higher level squares. 
+
+# Returns 
+- `Matrix{Float64}`: The resulting image. 
+"""
 @testimage_gen function mixed_dot(swidth::Integer=3, mwidth::Integer=4, lwidth::Integer=5, radius::Float64=3.5, numSquares::Integer=3)
 	image = zeros(260,260)
   block = generateBlock(swidth, mwidth, lwidth, radius, numSquares)
@@ -598,6 +683,22 @@ function flood_fill(arr, (x, y))
   end
 end
 
+export sine_bar_phantom
+"""
+		$(SIGNATURES)
+
+This function generates specified number of bars along a specified direction. These bars have varying intensity according to 
+a sine wave. 
+
+# Arguments
+- `size::Tuple{Integer, Integer}`: The size of the phantom in pixel.
+# Optional Arguments 
+- `N::Real=3`: The number of bars to generate. This does not have to be an integer.
+- `direction::String`: This can either be `"X"` or `"Y"` for the orientation of the bars.
+- `phase::Real`: The phase of the sine wave.
+# Returns 
+- `Matrix{Float64}`: The resulting image. 
+"""
 @testimage_gen function sine_bar_phantom(size::Tuple{Integer, Integer}=(81,81); N=3, direction="X", phase=1.5π)
 	if direction == "X"
 		image = repeat(sin.(range(0, 2π*N, length=size[1]+1)[1:end-1] .+ phase), 1, size[2])'

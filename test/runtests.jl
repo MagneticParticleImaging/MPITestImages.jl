@@ -38,4 +38,17 @@ DocMeta.setdocmeta!(MPITestImages, :DocTestSetup, :(using MPITestImages); recurs
     @test data(newTestImage)[1, 6] == 1.0 && isapprox(data(newTestImage)[end, end], 0.095, atol=0.001)
   end
 
+  @testset "Access remote test image" begin
+    name = "Phantom1"
+
+    newTestImage = TestImage(name, (100, 100))
+
+    phantom = data(newTestImage)
+
+    @test phantom[19, 24] == 1.0
+    @test phantom[43, 49] == 1.0
+  end
+
+  include("OnTheFlyTest.jl")
 end
+
