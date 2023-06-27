@@ -542,146 +542,168 @@ julia> four_quadrant_bar((18, 18), numBars=2, thickness=0)
 	return image
 end
 
+# Function describing the flood-fill algorithm used to remove certain parts of the blocks
+function flood_fill(arr, (x, y))
+	# check every element in the neighborhood of the element at (x, y) in arr
+	for x_off in -1:1, y_off in -1:1
+		# put the next part in a try-catch block so that if any index
+		# is outside the array, we move on to the next element.
+		try
+			# if the element is a 1, change it to a 0 and call flood_fill
+			# on it so it fills it's neighbors
+			if arr[x + x_off, y + y_off] == 1
+				arr[x + x_off, y + y_off] = 0
+				flood_fill(arr, (x + x_off, y + y_off))
+			end
+		catch
+			continue
+		end
+	end
+end
+
+
 export mixed_dot
 """
 		$(SIGNATURES)
 
 This function generates a mixed dot phantom as implemented by Top et al. (2019). 
 
-The phantom consists of small, medium and large squares as well as circles, that are ordered in a higher level square shape. 
-These higher level squares are again scattered in a circular shape. The size of the overall phantom is hardcoded. 
+The phantom can be specified to consists of a mixed arrangement of circles and squares with different sizes. 
+The order of these shapes can also be specified. The arrangement of shapes is again arranged in a higher-level rectangular shape. 
+These are repeated according to the specified radius and finally fitted into a circle. 
 
 # Arguments
-- `swidth::Integer`: The width of the smallest squares to generate.
-- `mwidth::Integer`: The width of the medium size squares to generate.
-- `lwidth::Integer`: The width of the largest size squares to generate. 
-- `radius::Float64`: The radius of the circles to generate.
-- `numSquares::Integer`: The number of squares to place along the higher level squares. 
+- `radius::Integer`: The radius of the higher level circle. This can be regarded as the image size.
+- `blockSize::Tuple{Integer, Integer}`: The size of the rectangular blocks that make up the phantom. 
+- `blockPattern::Vector{String}`: This vectors describes the pattern of one block in the phantom. Each element constitutes to a line in the 
+block. The shapes can be specified by the letter `"S"` for a square and `"C"` for a circle.
+- `shapeSizes::Vector{Integer}`: This vector describes the size of the shapes specified by `blockPattern`. For a circle the size is interpreted as the diameter, where as
+for the square shape, the size is the width. 
+- `distanceBetweenBlocks::Tuple{Integer, Integer}`: This specifies the distance between the blocks in x and y direction. 
+
+# Optional Arguments
+- `distancesBetweenShapes::Union{Vector{Tuple{Integer, Integer}}, Missing}`: Optionally, the distance between the shapes within the blocks can also be specified in x and y direction. If not set, 
+the distance between the shapes is assumed to be the size as specified with `shapeSizes` for x and y equally. 
+- `radiusOffset::Tuple{Integer, Integer}`: This applies an offset in x and y direction to the radius of the higher level circle.
 
 # Returns 
 - `Matrix{Float64}`: The resulting image. 
+
+# Example
+The following function call generates a phantom as specified by Top et al. (2019).
+
+```
+phantom = mixed_dot(82, (42, 44), ["SS", "CS"], [3, 5, 8, 4], (10, 9), distancesBetweenShapes=[(4, 4), (4, 3), (3, 3), (4, 4)], radiusOffset=(1.5, 1.85))
+```
 """
-@testimage_gen function mixed_dot(swidth::Integer=3, mwidth::Integer=4, lwidth::Integer=5, radius::Float64=3.5, numSquares::Integer=3)
-	image = zeros(260,260)
-  block = generateBlock(swidth, mwidth, lwidth, radius, numSquares)
-  blockX = size(block,2)
-  blockY = size(block,1)
-  dist = 9
+@testimage_gen function mixed_dot(radius::Integer, blockSize::Tuple{Integer, Integer}, blockPattern::Vector{String}, shapeSizes::Vector{Integer}, distanceBetweenBlocks::Tuple{Integer, Integer}; distancesBetweenShapes::Union{Vector{Tuple{Integer, Integer}}, Missing}=missing, radiusOffset::Tuple{Float64, Float64}=(0,0))
+	block = createBlock(blockSize, blockPattern, shapeSizes, distances=distancesBetweenShapes)
+	block = hcat(block, zeros(blockSize[1], distanceBetweenBlocks[2]))
+	block = vcat(block, zeros(distanceBetweenBlocks[1], blockSize[2] + distanceBetweenBlocks[2]))
 
-  for i in 0:3, j in 0:3
-    offsetX = 33
-    offsetY = 35
-    image[offsetX+i*blockY+i*dist:offsetX+(i+1)*blockY+i*dist-1, offsetY+j*blockX+j*dist:offsetY+(j+1)*blockX+j*dist-1] = block
-  end
+	repeatX = ceil(Int64, radius*2 / size(block)[1]) 
+	repeatY = ceil(Int64, radius*2 / size(block)[2])
 
-  # Reduce image on the size 160x160
-  image = image[46:end-54, 55:end-45]
+	# the created image will be larger than specified
+	image = repeat(block, repeatX, repeatY)	
 
-  M = size(image,1)
-  N = size(image,2)
-  r = 82
+	# center image correctly and create circle
+	imageCenter = floor.(Int64, (size(image)[1] / 2 - distanceBetweenBlocks[1] / 2, size(image)[2] / 2 - distanceBetweenBlocks[2] / 2))
+	
+	idxToCut = Vector{Tuple{Int64, Int64}}(undef, 0)
+	for x in -imageCenter[1]+1:imageCenter[1], y in -imageCenter[2]+1:imageCenter[2]
+		if round(sqrt((x + radiusOffset[1])^2 + (y + radiusOffset[2])^2)) > radius
+			# if pixel just outside radius and are one
+			if round(sqrt((x + radiusOffset[1])^2 + (y + radiusOffset[2])^2)) <= radius + 1 && image[x + imageCenter[1], y + imageCenter[2]] == 1
+				push!(idxToCut, (x + imageCenter[1], y + imageCenter[2]))
+			end
+			image[x + imageCenter[1], y + imageCenter[2]] = 0
+		end
+	end
 
-  # Remove parts in blocks that range out of radius using the flood-fill algorithm
-  for i in 1:M, j in 1:N
-    if round(sqrt((i-78)^2+(j-80)^2)) > r
-      if image[i,j] == 1
-        flood_fill(image, (i,j))
-      end
-    end
-  end
+	xGap = abs(radius - imageCenter[1])
+	yGap = abs(radius - imageCenter[2])	
 
-  # TODO: Fix this
-  # Remove the rest...
-  image[1:5, 44:105] .= 0
-  image[20:28, 20:27] .= 0
-  image[20:28, 20:27] .= 0
-  image[4:12, 115:121] .= 0
-  image[12:19, 124:130] .= 0
-  image[46:54, 152:158] .= 0
-  image[145:154, 38:44] .= 0
-  image[32:39, 144:151] .= 0
-  image[41:51, 1:8] .= 0
-  image[151:158, 60:76] .= 0
-  image[5:15, 30:42] .= 0
+	# cut out incomplete shapes using flood fill
+	for idx in idxToCut
+		flood_fill(image, idx)
+	end
+
+	# contrain image to specified size
+	image = image[xGap:imageCenter[1]+radius+1-floor(Int64, distanceBetweenBlocks[1]/2), yGap:imageCenter[2]+radius+1-floor(Int64, distanceBetweenBlocks[2]/2)]
 
 	return image
 end
 
-# Function that generates a complete block of small, medium and large squares and circles
-function generateBlock(swidth, mwidth, lwidth, radius, numSquares)
-	block = zeros(40,44)
+function createBlock(blockSize::Tuple{Integer, Integer}, pattern::Vector{String}, sizes::Vector{Int64}; distances::Union{Vector{Tuple{Integer, Integer}}, Missing}=missing)
+	numShapes = sum(length.(pattern))
+	numShapes == length(sizes) || throw(ArgumentError("For the specified pattern, the right amount of sizes was not given. It was $(length(sizes)) and should be $(numShapes)"))
+	if !ismissing(distances) numShapes == length(distances) || throw(ArgumentError("For the specified pattern, the right amount of distances was not given. It was $(length(distances)) and should be $(numShapes)")) end
+	block = zeros(blockSize)
 
-	# Small squares
-	dist = 4
-	for i in 0:numSquares-1, j in 0:numSquares-1
-		block[1+i*swidth+i*dist:(i+1)*swidth+i*dist, 2+j*swidth+j*dist:1+(j+1)*swidth+j*dist] .=1
+	# number of different shapes to put in block
+	numRows = length(pattern)
+
+	# devide block size
+	xSpace = floor(Int64, blockSize[1] / numRows)
+	shapeCounter = 0
+
+	for row in 1:numRows	
+		p = pattern[row]
+
+		# calc space in y direction for each shape
+		ySpace = floor(Int64, blockSize[2] / length(p))
+		for col in eachindex(p)
+			shapeCounter += 1
+			shapeIndicator = p[col]
+
+			shapeSize = sizes[shapeCounter]
+			shape = zeros(shapeSize, shapeSize)
+			# select the correct shape
+			if shapeIndicator == 'S'
+				shape = shape .+ 1
+			elseif shapeIndicator == 'C'
+				radius = (shapeSize - 1) / 2
+				center = floor(Int64, shapeSize / 2)
+
+				for x in -center:center, y in -center:center
+					if sqrt(x^2 + y^2) < radius
+						shape[center + x, center + y] = 1
+					end
+				end
+			end
+
+			shapeSize >= minimum(blockSize) && throw(ArgumentError("The block is too small to accommodate the shapes!"))
+
+			# define borders
+			pivot = (xSpace*(row - 1)+1, ySpace*(col - 1)+1)
+
+			# if no distances are provided use size of shapes as default distance
+			dist = ismissing(distances) ? (sizes[shapeCounter], sizes[shapeCounter]) : distances[shapeCounter]	
+
+			x, y = 0, 0
+
+			itFits = true
+			while itFits
+				block[pivot[1]+x:pivot[1]+x+shapeSize-1, 
+					  pivot[2]+y:pivot[2]+y+shapeSize-1] .= shape
+
+				y += shapeSize + dist[2]
+
+				if y+shapeSize >= ySpace
+					y = 0
+					x += shapeSize + dist[1]
+					if x + shapeSize >= xSpace
+						itFits = false
+					end
+				end
+			end
+		end
 	end
 
-  # Medium squares
-  dist = 4
+	return block
+end 
 
-  for i in 0:numSquares-1, j in 0:numSquares-1
-		block[end-i*dist-(i+1)*mwidth+1:end-i*dist-i*mwidth, end-j*dist-(j+1)*mwidth:end-j*dist-j*mwidth-1] .=1
-	end
-
-	# Large squares
-	distX = 3
-	distY = 4
-
-  for i in 0:numSquares-2, j in 0:numSquares-1
-		block[1+i*lwidth+i*distY:(i+1)*lwidth+i*distY, end-j*distX-(j+1)*lwidth+1:end-j*distX-j*lwidth] .=1
-	end
-
-  # Circles
-  centerX = 5
-  centerY = size(block, 1)-15
-  circle(block, centerX, centerY, radius)
-
-  centerX = 15
-  centerY = size(block,1)-15
-  circle(block, centerX, centerY, radius)
-
-  centerX = 5
-  centerY = size(block,1)-5
-  circle(block, centerX, centerY, radius)
-
-  centerX = 15
-  centerY = size(block,1)-5
-  circle(block, centerX, centerY, radius)
-
-  return block
-end
-
-function circle(block,centerX, centerY, radius)
-  for i in -centerX:centerX
-    for j in -centerX:centerX
-      if sqrt(i^2+j^2) < radius
-        block[centerY+i, centerX+j] = 1
-      end
-    end
-  end
-end
-
-# Function describing the flood-fill algorithm used to remove certain parts of the blocks
-function flood_fill(arr, (x, y))
-  # check every element in the neighborhood of the element at (x, y) in arr
-  for x_off in -1:1
-    for y_off in -1:1
-      # put the next part in a try-catch block so that if any index
-      # is outside the array, we move on to the next element.
-      try
-        # if the element is a 1, change it to a 0 and call flood_fill
-        # on it so it fills it's neighbors
-        if arr[x + x_off, y + y_off] == 1
-          arr[x + x_off, y + y_off] = 0
-          flood_fill(arr, (x + x_off, y + y_off))
-        end
-      catch
-        continue
-      end
-    end
-  end
-end
 
 export sine_bar_phantom
 """
