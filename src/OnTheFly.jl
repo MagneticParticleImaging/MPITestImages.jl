@@ -577,7 +577,7 @@ These are repeated according to the specified radius and finally fitted into a c
 - `blockSize::Tuple{Integer, Integer}`: The size of the rectangular blocks that make up the phantom. 
 - `blockPattern::Vector{String}`: This vectors describes the pattern of one block in the phantom. Each element constitutes to a line in the 
 block. The shapes can be specified by the letter `"S"` for a square and `"C"` for a circle.
-- `shapeSizes::Vector{Integer}`: This vector describes the size of the shapes specified by `blockPattern`. For a circle the size is interpreted as the diameter, where as
+- `shapeSizes::Vector{Int}`: This vector describes the size of the shapes specified by `blockPattern`. For a circle the size is interpreted as the diameter, where as
 for the square shape, the size is the width. 
 - `distanceBetweenBlocks::Tuple{Integer, Integer}`: This specifies the distance between the blocks in x and y direction. 
 
@@ -596,7 +596,7 @@ The following function call generates a phantom as specified by Top et al. (2019
 phantom = mixed_dot(82, (42, 44), ["SS", "CS"], [3, 5, 8, 4], (10, 9), distancesBetweenShapes=[(4, 4), (4, 3), (3, 3), (4, 4)], radiusOffset=(1.5, 1.85))
 ```
 """
-@testimage_gen function mixed_dot(radius::Integer, blockSize::Tuple{Integer, Integer}, blockPattern::Vector{String}, shapeSizes::Vector{Integer}, distanceBetweenBlocks::Tuple{Integer, Integer}; distancesBetweenShapes::Union{Vector{Tuple{Integer, Integer}}, Missing}=missing, radiusOffset::Tuple{Float64, Float64}=(0,0))
+@testimage_gen function mixed_dot(radius::Integer, blockSize::Tuple{Integer, Integer}, blockPattern::Vector{String}, shapeSizes::Vector{Int}, distanceBetweenBlocks::Tuple{Integer, Integer}; distancesBetweenShapes::Union{Vector{Tuple{Int, Int}}, Missing}=missing, radiusOffset::Tuple{Float64, Float64}=(0,0))
 	block = createBlock(blockSize, blockPattern, shapeSizes, distances=distancesBetweenShapes)
 	block = hcat(block, zeros(blockSize[1], distanceBetweenBlocks[2]))
 	block = vcat(block, zeros(distanceBetweenBlocks[1], blockSize[2] + distanceBetweenBlocks[2]))
@@ -635,7 +635,7 @@ phantom = mixed_dot(82, (42, 44), ["SS", "CS"], [3, 5, 8, 4], (10, 9), distances
 	return image
 end
 
-function createBlock(blockSize::Tuple{Integer, Integer}, pattern::Vector{String}, sizes::Vector{Int64}; distances::Union{Vector{Tuple{Integer, Integer}}, Missing}=missing)
+function createBlock(blockSize::Tuple{Integer, Integer}, pattern::Vector{String}, sizes::Vector{Int}; distances::Union{Vector{Tuple{Int, Int}}, Missing}=missing)
 	numShapes = sum(length.(pattern))
 	numShapes == length(sizes) || throw(ArgumentError("For the specified pattern, the right amount of sizes was not given. It was $(length(sizes)) and should be $(numShapes)"))
 	if !ismissing(distances) numShapes == length(distances) || throw(ArgumentError("For the specified pattern, the right amount of distances was not given. It was $(length(distances)) and should be $(numShapes)")) end

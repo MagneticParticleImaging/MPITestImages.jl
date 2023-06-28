@@ -84,14 +84,14 @@
     end
 
     @testset "Mixed Dot phantom" begin
-        mediumRectWidth = 4
-
         # The utility functions cannot easily be tested individually. 
         # They should be moved to a seperate file for including.
-        phantom = mixed_dot(3, mediumRectWidth, 5, 3.5, 3)
-        
-        size = 160
-        @test phantom[Int(size/2)-mediumRectWidth, mediumRectWidth:2*mediumRectWidth-1] == ones(mediumRectWidth)
-        @test phantom[69:73, 89:93] == ones(5, 5)
+        smallRectWidth = 3
+        mediumRectWidth = 4
+
+        phantom = mixed_dot(82, (42, 44), ["SS", "CS"], [smallRectWidth, 5, 8, mediumRectWidth], (10, 9), distancesBetweenShapes=[(4, 4), (4, 3), (3, 3), (4, 4)], radiusOffset=(1.5, 1.85))
+
+        @test phantom[96:98, 96:98] == ones(smallRectWidth, smallRectWidth)
+        @test phantom[66:69, 66:69] == ones(mediumRectWidth, mediumRectWidth)
     end
 end 
