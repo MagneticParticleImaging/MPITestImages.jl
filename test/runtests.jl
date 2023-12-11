@@ -28,3 +28,4 @@ DocMeta.setdocmeta!(MPITestImages, :DocTestSetup, :(using MPITestImages); recurs
     doctest(MPITestImages; manual = false)
   end
 end
+

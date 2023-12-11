@@ -8,21 +8,21 @@ using Images
 using MacroTools
 
 const remotefiles = [
-  "Phantom1",
-  "Phantom2",
-  "Phantom3",
-  "Phantom3_small",
-  "phantom_2delta_notInLine_3px",
-  "phantom_3delta_InLine_3px",
-  "phantom_3delta_notInLine_3px",
-  "phantom_brain_30",
-  "phantom_checkers_4px",
-  "phantom_delta_1px",
-  "phantom_delta_3px",
-  "phantom_delta_3px_shift1",
-  "phantom_delta_3px_shift2",
-  "phantom_vessel",
-  "phantom_vessel2",
+    "Phantom1",
+    "Phantom2",
+    "Phantom3",
+    "Phantom3_small",
+    "phantom_2delta_notInLine_3px",
+    "phantom_3delta_InLine_3px",
+    "phantom_3delta_notInLine_3px",
+    "phantom_brain_30",
+    "phantom_checkers_4px",
+    "phantom_delta_1px",
+    "phantom_delta_3px",
+    "phantom_delta_3px_shift1",
+    "phantom_delta_3px_shift2",
+    "phantom_vessel",
+    "phantom_vessel2",
 ]
 
 onTheFlyImages = Vector{Symbol}()

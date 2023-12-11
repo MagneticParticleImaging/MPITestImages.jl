@@ -1,3 +1,4 @@
+
 export delta_image
 """
     $(SIGNATURES)
@@ -407,10 +408,13 @@ The dimensions of this image dictates the depth and width of the resulting phant
   return result
 end
 
+export spatial_resolution_phantom
 """
+		$(SIGNATURES)
+
 Generates Spatial Resolution Phantom.
 
-Adapted from https://www.qrm.de/en/products/3d-spatial-resolution-slice-sensitivity-and-wire-mtf-phantom/
+Adapted from https://www.elsesolutions.com/wp-content/uploads/2016/02/Spatial-Resolution-Phantom.pdf
 
 # Arguments
 
@@ -610,7 +614,6 @@ end
         flood_fill(image, (i, j))
       end
     end
-  end
 
   # TODO: Fix this
   # Remove the rest...
@@ -705,11 +708,7 @@ function flood_fill(arr, (x, y))
           arr[x + x_off, y + y_off] = 0
           flood_fill(arr, (x + x_off, y + y_off))
         end
-      catch
-        continue
-      end
     end
-  end
 end
 
 @testimage_gen function sine_bar_phantom(
