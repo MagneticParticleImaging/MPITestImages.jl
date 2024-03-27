@@ -508,7 +508,7 @@ https://en.wikipedia.org/wiki/Siemens_star
 
   spokeAngle = π / numSpokes
   for spokeIdx ∈ 1:numSpokes
-    Luxor.pie(radius, (2 * spokeIdx - 1) * spokeAngle, (2 * spokeIdx) * spokeAngle, :fill)
+    Luxor.pie(radius, (2 * spokeIdx - 1) * spokeAngle, (2 * spokeIdx) * spokeAngle, action = :fill)
   end
 
   image = Float32.(Gray.(image_as_matrix()))
@@ -528,7 +528,7 @@ end
   background("black")
   sethue("white")
   setline(thickness)
-  Luxor.spiral(radius / numTurns / (2π) * 0.95, 1; log = false, period = numTurns * 2π, :stroke)
+  Luxor.spiral(radius / numTurns / (2π) * 0.95, 1; log = false, period = numTurns * 2π, action = :stroke)
 
   image = Float32.(Gray.(image_as_matrix()))
   finish()
@@ -614,6 +614,7 @@ end
         flood_fill(image, (i, j))
       end
     end
+  end
 
   # TODO: Fix this
   # Remove the rest...
@@ -701,14 +702,14 @@ function flood_fill(arr, (x, y))
     for y_off ∈ -1:1
       # put the next part in a try-catch block so that if any index
       # is outside the array, we move on to the next element.
-      try
-        # if the element is a 1, change it to a 0 and call flood_fill
-        # on it so it fills it's neighbors
-        if arr[x + x_off, y + y_off] == 1
-          arr[x + x_off, y + y_off] = 0
-          flood_fill(arr, (x + x_off, y + y_off))
-        end
+      # try if the element is a 1, change it to a 0 and call flood_fill
+      # on it so it fills it's neighbors
+      if arr[x + x_off, y + y_off] == 1
+        arr[x + x_off, y + y_off] = 0
+        flood_fill(arr, (x + x_off, y + y_off))
+      end
     end
+  end
 end
 
 @testimage_gen function sine_bar_phantom(
