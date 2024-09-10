@@ -3,7 +3,6 @@ module MPITestImages
 using DocStringExtensions
 using Pkg.Artifacts
 using FileIO
-using Luxor
 using Images
 using MacroTools
 
