@@ -500,19 +500,17 @@ end
 https://en.wikipedia.org/wiki/Siemens_star
 """
 @testimage_gen function siemens_star(size::Tuple{Integer, Integer} = (81, 81); numSpokes::Integer = 8)
-  radius = minimum(size) / 2
-  Drawing(size..., :image)
-  origin()
-  background("black")
-  sethue("white")
+  image = zeros(size)
 
-  spokeAngle = π / numSpokes
-  for spokeIdx ∈ 1:numSpokes
-    Luxor.pie(radius, (2 * spokeIdx - 1) * spokeAngle, (2 * spokeIdx) * spokeAngle, action = :fill)
+  anglecheck = ϕ -> iseven(div(round(Int64, ϕ*100000), round(Int64, 2π/numSpokes/2*100000)))
+  for (i, j) ∈ Tuple.(CartesianIndices(image))
+    i_rel, j_rel = (i, j) .- ceil.(size ./ 2)
+    length_ = √(i_rel^2 + j_rel^2)
+    angle_ = angle(i_rel - im*j_rel) + π
+    if length_ <= minimum(size)/2 && (anglecheck(angle_) || length_ < 2) # Fixes the missing pixels in the center
+      image[i, j] = 1
+    end
   end
-
-  image = Float32.(Gray.(image_as_matrix()))
-  finish()
 
   return image
 end
@@ -522,16 +520,19 @@ end
   numTurns::Real = 4,
   thickness::Real = 2,
 )
-  radius = minimum(size) / 2
-  Drawing(size..., :image)
-  origin()
-  background("black")
-  sethue("white")
-  setline(thickness)
-  Luxor.spiral(radius / numTurns / (2π) * 0.95, 1; log = false, period = numTurns * 2π, action = :stroke)
+  image = zeros(size)
 
-  image = Float32.(Gray.(image_as_matrix()))
-  finish()
+  numSteps = round(Int64, maximum(size)*numTurns)
+  angles = range(0, stop=2π*numTurns, length=numSteps)
+  distances = range(0, stop=minimum(size)/2, length=numSteps)
+
+  for (i, ϕ) ∈ enumerate(angles)
+    x = size[1]/2 + cos(ϕ)*distances[i]
+    y = size[2]/2 + sin(ϕ)*distances[i]
+
+    pixels = [pos for pos ∈ CartesianIndices(image) if sqrt(sum((Tuple(pos) .- [x, y]).^2)) <= thickness/2]
+    image[pixels] .= 1
+  end
 
   return image
 end
