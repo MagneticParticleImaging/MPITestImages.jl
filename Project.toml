@@ -1,7 +1,7 @@
 name = "MPITestImages"
 uuid = "67a05f95-e8e3-406b-b1ec-9f1919b23209"
-authors = ["Jonas Schumacher <jonas.schumacher@imte.fraunhofer.de> and contributors"]
 version = "0.1.7"
+authors = ["Jonas Schumacher <jonas.schumacher@imte.fraunhofer.de> and contributors"]
 
 [deps]
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
@@ -13,7 +13,7 @@ Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 [compat]
 Aqua = "0.8"
 DocStringExtensions = "0.8, 0.9"
-Documenter = "0.27"
+Documenter = "0.27, 1"
 FileIO = "1"
 Images = "0.23, 0.24, 0.25, 0.26"
 MacroTools = "0.5"
